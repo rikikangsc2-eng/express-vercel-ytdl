@@ -1,55 +1,33 @@
-const express = require("express");
-const ytdl = require("@distube/ytdl-core");
-
+const express = require('express');
+const axios = require('axios');
 const app = express();
-const port = 3000;
 
-app.get("/ytdl", async (req, res) => {
-  const videoUrl = req.query.url;
+app.use(express.json());
 
-  if (!videoUrl) {
-    return res.status(400).json({ error: "Parameter 'url' diperlukan." });
-  }
-
+app.post('/llm', async (req, res) => {
   try {
-    // Memeriksa apakah URL valid
-    if (!ytdl.validateURL(videoUrl)) {
-      return res.status(400).json({ error: "URL tidak valid." });
-    }
-
-    // Mengambil info video
-    const videoInfo = await ytdl.getInfo(videoUrl);
-
-    // Filter format untuk video dan audio
-    const formats = videoInfo.formats;
-
-    // Mengambil format video dengan audio
-    const videoAndAudio = formats.find(
-      (format) => format.hasAudio && format.hasVideo && format.container === "mp4"
+    const response = await axios.post(
+      'https://api.groq.com/openai/v1/chat/completions',
+      {
+        messages: req.body.messages || [],
+        model: req.body.model || 'llama3-8b-8192',
+        temperature: req.body.temperature || 1,
+        max_tokens: req.body.max_tokens || 1024,
+        top_p: req.body.top_p || 1,
+        stream: req.body.stream || true,
+        stop: req.body.stop || null
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer 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'
+        }
+      }
     );
-
-    // Mengambil format video only
-    const videoOnly = formats.find(
-      (format) => !format.hasAudio && format.hasVideo && format.container === "mp4"
-    );
-
-    // Mengambil format audio only
-    const audioOnly = formats.find(
-      (format) => format.hasAudio && !format.hasVideo && format.container === "webm"
-    );
-
-    // Respon JSON
-    res.json({
-      videoandaudio: videoAndAudio ? videoAndAudio.url : null,
-      videoonly: videoOnly ? videoOnly.url : null,
-      audioonly: audioOnly ? audioOnly.url : null,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Terjadi kesalahan pada server." });
+    res.status(response.status).send(response.data);
+  } catch (error) {
+    res.status(error.response?.status || 500).send(error.response?.data || { error: 'Internal Server Error' });
   }
 });
 
-app.listen(port, () => {
-  console.log(`Server berjalan di http://localhost:${port}`);
-});
+app.listen(3000, () => console.log('Server running on port 3000'));
