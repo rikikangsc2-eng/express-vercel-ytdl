@@ -24,7 +24,7 @@ app.post('/llm', async (req, res) => {
         }
       }
     );
-    res.status(response.status).send(response.data);
+    res.status(response.status).json(response);
   } catch (error) {
     res.status(error.response?.status || 500).send(error.response?.data || { error: 'Internal Server Error' });
   }
