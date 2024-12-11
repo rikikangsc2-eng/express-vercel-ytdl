@@ -24,7 +24,8 @@ app.post('/llm', async (req, res) => {
         }
       }
     );
-    res.status(response.status).json(response);
+ res.setHeader('Content-Type', 'application/json');
+res.status(response.status).json(JSON.stringify(response, null, 2));
   } catch (error) {
     console.error(error);
     res.status(error.response?.status || 500).send(error.response?.data || { error: error.message });
