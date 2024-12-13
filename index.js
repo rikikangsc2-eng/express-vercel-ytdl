@@ -1,8 +1,29 @@
 const express = require('express');
 const axios = require('axios');
 const app = express();
+const gTTS = require('node-gtts')('id');
 
 app.use(express.json());
+
+app.get('/tts', (req, res) => {
+    const text = req.query.text;
+
+    if (!text) {
+        return res.status(400).send('Query parameter "text" is required');
+    }
+
+    try {
+        gTTS.stream(text)
+            .on('error', (err) => {
+                console.error('Error synthesizing text:', err);
+                res.status(500).send('Error synthesizing text');
+            })
+            .pipe(res.set('Content-Type', 'audio/mpeg'));
+    } catch (err) {
+        console.error('Unexpected error:', err);
+        res.status(500).send('Unexpected error');
+    }
+});
 
 app.post('/llm', async (req, res) => {
   try {
