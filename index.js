@@ -1,11 +1,11 @@
 const express = require('express');
 const axios = require('axios');
 const app = express();
-const gTTS = require('node-gtts')('id');
+const googleTTS = require('google-tts-api');
 
 app.use(express.json());
 
-app.get('/tts', (req, res) => {
+app.get('/tts', async (req, res) => {
     const text = req.query.text;
 
     if (!text) {
@@ -13,15 +13,22 @@ app.get('/tts', (req, res) => {
     }
 
     try {
-        gTTS.stream(text)
-            .on('error', (err) => {
-                console.error('Error synthesizing text:', err);
-                res.status(500).send('Error synthesizing text');
-            })
-            .pipe(res.set('Content-Type', 'audio/mpeg'));
+        const audioChunks = await googleTTS.getAllAudioBase64(text, {
+            lang: 'su',
+            slow: false,
+            host: 'https://translate.google.com',
+            timeout: 10000,
+            splitPunct: ',.?',
+        });
+
+        const mergedAudio = audioChunks.map(chunk => chunk.base64).join('');
+        const audioBuffer = Buffer.from(mergedAudio, 'base64');
+
+        res.set('Content-Type', 'audio/mpeg');
+        res.send(audioBuffer);
     } catch (err) {
-        console.error('Unexpected error:', err);
-        res.status(500).send('Unexpected error');
+        console.error('Error synthesizing text:', err);
+        res.status(500).send('Error synthesizing text');
     }
 });
 
