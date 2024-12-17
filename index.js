@@ -14,7 +14,7 @@ app.get('/tts', async (req, res) => {
 
     try {
         const audioChunks = await googleTTS.getAllAudioBase64(text, {
-            lang: 'su',
+            lang: 'id',
             slow: false,
             host: 'https://translate.google.com',
             timeout: 10000,
