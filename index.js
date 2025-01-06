@@ -48,7 +48,7 @@ app.post('/llm', async (req, res) => {
       {
         headers: {
           'Content-Type': 'application/json',
-          Authorization: 'Bearer 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'
+          Authorization: 'Bearer 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'
         }
       }
     );
