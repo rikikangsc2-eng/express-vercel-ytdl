@@ -5,6 +5,25 @@ const googleTTS = require('google-tts-api');
 
 app.use(express.json());
 
+app.get('/song', async (req, res) => {
+    const url = req.query.url;
+    if (!url) {
+        return res.status(400).send('Query parameter "url" is required');
+    }
+    try {
+        const response = await axios.get(`https://spotify-downloader9.p.rapidapi.com/downloadSong?songId=${url}`, {
+            headers: {
+                'x-rapidapi-host': 'spotify-downloader9.p.rapidapi.com',
+                'x-rapidapi-key': '222ac7fb8bmsh0cb23acb6003932p1bfcadjsne797ba726a04'
+            }
+        });
+        res.status(response.status).json(response.data);
+    } catch (error) {
+        console.error(error);
+        res.status(error.response?.status || 500).send(error.response?.data || { error: error.message });
+    }
+});
+
 app.get('/tts', async (req, res) => {
     const text = req.query.text;
 
