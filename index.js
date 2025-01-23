@@ -32,8 +32,8 @@ app.get('/music', async (req, res) => {
                 'Referer': 'https://youtube-mp36.p.rapidapi.com'
             }
         });
-
         res.setHeader('Content-Type', 'audio/mpeg');
+        res.setHeader('Content-Disposition', 'attachment; filename=audio.mp3');
         audioResponse.data.pipe(res);
 
     } catch (err) {
