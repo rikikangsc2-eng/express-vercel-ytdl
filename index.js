@@ -5,41 +5,28 @@ const googleTTS = require('google-tts-api');
 
 app.use(express.json());
 
-app.get('/search', async (req, res) => {
-    const q = req.query.q;
-    if (!q) {
-        return res.status(400).send('Query parameter "q" is required');
-    }
-    try {
-        const response = await axios.get(`https://spotify-downloader9.p.rapidapi.com/search?q=${q}&type=tracks&limit=1&offset=0&noOfTopResults=5`, {
-            headers: {
-                'x-rapidapi-host': 'spotify-downloader9.p.rapidapi.com',
-                'x-rapidapi-key': '222ac7fb8bmsh0cb23acb6003932p1bfcadjsne797ba726a04'
-            }
-        });
-        res.status(response.status).json(response.data);
-    } catch (error) {
-        console.error(error);
-        res.status(error.response?.status || 500).send(error.response?.data || { error: error.message });
-    }
-});
-
 app.get('/song', async (req, res) => {
-    const url = req.query.url;
-    if (!url) {
-        return res.status(400).send('Query parameter "url" is required');
+    const id = req.query.id;
+
+    if (!id) {
+        return res.status(400).send('Query parameter "id" is required');
     }
+
     try {
-        const response = await axios.get(`https://spotify-downloader9.p.rapidapi.com/downloadSong?songId=${url}`, {
-            headers: {
-                'x-rapidapi-host': 'spotify-downloader9.p.rapidapi.com',
-                'x-rapidapi-key': '222ac7fb8bmsh0cb23acb6003932p1bfcadjsne797ba726a04'
+        const response = await axios.get(
+            `https://youtube-mp36.p.rapidapi.com/dl?id=${id}`,
+            {
+                headers: {
+                    'x-rapidapi-host': 'youtube-mp36.p.rapidapi.com',
+                    'x-rapidapi-key': '222ac7fb8bmsh0cb23acb6003932p1bfcadjsne797ba726a04'
+                }
             }
-        });
-        res.status(response.status).json(response.data);
-    } catch (error) {
-        console.error(error);
-        res.status(error.response?.status || 500).send(error.response?.data || { error: error.message });
+        );
+
+        res.status(200).json(response.data);
+    } catch (err) {
+        console.error('Error fetching song:', err);
+        res.status(500).send('Error fetching song');
     }
 });
 
