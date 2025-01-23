@@ -23,7 +23,11 @@ app.get('/song', async (req, res) => {
             }
         );
 
-        res.status(200).json(response.data);
+        const audioData = await axios.get(response.data.link, { responseType: 'arraybuffer' });
+        const audioBuffer = Buffer.from(audioData.data);
+
+        res.set('Content-Type', 'audio/mpeg');
+        res.send(audioBuffer);
     } catch (err) {
         console.error('Error fetching song:', err);
         res.status(500).send('Error fetching song');
