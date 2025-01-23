@@ -5,43 +5,6 @@ const googleTTS = require('google-tts-api');
 
 app.use(express.json());
 
-app.get('/music', async (req, res) => {
-    const id = req.query.id;
-
-    if (!id) {
-        return res.status(400).send('Query parameter "id" is required');
-    }
-
-    try {
-        const response = await axios.get(
-            `https://youtube-mp36.p.rapidapi.com/dl?id=${id}`,
-            {
-                headers: {
-                    'x-rapidapi-host': 'youtube-mp36.p.rapidapi.com',
-                    'x-rapidapi-key': '222ac7fb8bmsh0cb23acb6003932p1bfcadjsne797ba726a04'
-                }
-            }
-        );
-
-         const audioUrl = response.data.link;
-
-        const audioResponse = await axios.get(audioUrl, {
-            responseType: 'stream',
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.6778.260 Mobile Safari/537.36',
-                'Referer': 'https://youtube-mp36.p.rapidapi.com'
-            }
-        });
-        res.setHeader('Content-Type', 'audio/mpeg');
-        res.setHeader('Content-Disposition', 'attachment; filename=audio.mp3');
-        audioResponse.data.pipe(res);
-
-    } catch (err) {
-        console.error('Error fetching song:', err);
-        res.status(500).send('Error fetching song');
-    }
-});
-
 app.get('/tts', async (req, res) => {
     const text = req.query.text;
 
