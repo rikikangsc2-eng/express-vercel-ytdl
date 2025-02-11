@@ -52,7 +52,7 @@ app.post('/llm', async (req, res) => {
         }
       }
     );
-res.setHeader('Content-Type', 'appication/json');
+    res.setHeader('Content-Type', 'application/json');
 res.status(response.status).json(response.data);
   } catch (error) {
     console.error(error);
