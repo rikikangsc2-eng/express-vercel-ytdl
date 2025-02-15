@@ -17,12 +17,7 @@
       // Mencoba memanggil ElevenLabs API
       const audioStream = await voice.textToSpeechStream({
         textInput: text,
-        modelId:         "eleven_multilingual_v2",       // The ElevenLabs Model ID
-        stability:       0.5,                            // The stability for the converted speech
-    similarityBoost: 0.5,                            // The similarity boost for the converted speech
-    modelId:         "eleven_multilingual_v2",       // The ElevenLabs Model ID
-    style:           1,                              // The style exaggeration for the converted speech
-    speakerBoost:    true
+        modelId:         "eleven_multilingual_v2"
       });
       res.setHeader('Content-Type', 'audio/mpeg');
       audioStream.pipe(res);
