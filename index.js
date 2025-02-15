@@ -1,63 +1,62 @@
-const express = require('express');
-const axios = require('axios');
-const app = express();
-const googleTTS = require('google-tts-api');
+  const express = require('express');
+  const axios = require('axios');
+  const ElevenLabs = require('elevenlabs-node');
 
-app.use(express.json());
+  const app = express();
 
-app.get('/tts', async (req, res) => {
-    const text = req.query.text;
+  const voice = new ElevenLabs({
+    apiKey: "sk_a54cae176ba57e1e27fdc1860219a6cbdf777d0431127035",
+    voiceId: "kuOK5r8Woz6lkWaMr8kx"
+  });
 
-    if (!text) {
-        return res.status(400).send('Query parameter "text" is required');
-    }
+  app.get('/tts', async (req, res) => {
+    // Mengambil teks dari query parameter atau menggunakan default "mozzy is cool"
+    const text = req.query.text || "mozzy is cool";
 
     try {
-        const audioChunks = await googleTTS.getAllAudioBase64(text, {
-            lang: 'id',
-            slow: false,
-            host: 'https://translate.google.com',
-            timeout: 10000,
-            splitPunct: ',.?',
-        });
+      // Mencoba memanggil ElevenLabs API
+      const audioStream = await voice.textToSpeechStream({
+        textInput: text,
+        modelId:         "eleven_multilingual_v2",       // The ElevenLabs Model ID
+        stability:       0.5,                            // The stability for the converted speech
+    similarityBoost: 0.5,                            // The similarity boost for the converted speech
+    modelId:         "eleven_multilingual_v2",       // The ElevenLabs Model ID
+    style:           1,                              // The style exaggeration for the converted speech
+    speakerBoost:    true
+      });
+      res.setHeader('Content-Type', 'audio/mpeg');
+      audioStream.pipe(res);
+    } catch (error) {
+      console.error("ElevenLabs error, gunakan fallback API:", error.message);
 
-        const mergedAudio = audioChunks.map(chunk => chunk.base64).join('');
-        const audioBuffer = Buffer.from(mergedAudio, 'base64');
+      // Jika terjadi error, gunakan fallback API
+      const fallbackApiUrl = `https://api.agatz.xyz/api/voiceover?text=${encodeURIComponent(text)}&model=miku`;
 
-        res.set('Content-Type', 'audio/mpeg');
-        res.send(audioBuffer);
-    } catch (err) {
-        console.error('Error synthesizing text:', err);
-        res.status(500).send('Error synthesizing text');
-    }
-});
-
-app.post('/llm', async (req, res) => {
-  try {
-    const response = await axios.post(
-      'https://api.groq.com/openai/v1/chat/completions',
-      {
-        messages: req.body.messages || [],
-        model: req.body.model || 'llama3-8b-8192',
-        temperature: req.body.temperature || 1,
-        max_tokens: req.body.max_tokens || 1024,
-        top_p: req.body.top_p || 1,
-        stream: req.body.stream || false,
-        stop: req.body.stop || null
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: 'Bearer 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'
+      try {
+        const fallbackResponse = await axios.get(fallbackApiUrl);
+        if (
+          fallbackResponse.data &&
+          fallbackResponse.data.data &&
+          fallbackResponse.data.data.oss_url
+        ) {
+          const ossUrl = fallbackResponse.data.data.oss_url;
+          // Mengambil stream audio dari oss_url yang diberikan
+          const ossResponse = await axios({
+            method: 'get',
+            url: ossUrl,
+            responseType: 'stream'
+          });
+          res.setHeader('Content-Type', 'audio/mpeg');
+          ossResponse.data.pipe(res);
+        } else {
+          res.status(500).send("Fallback API tidak mengembalikan URL audio");
         }
+      } catch (fallbackError) {
+        console.error("Fallback API error:", fallbackError.message);
+        res.status(500).send("Error dalam menghasilkan suara menggunakan fallback API");
       }
-    );
-    res.setHeader('Content-Type', 'application/json');
-res.status(response.status).json(response.data);
-  } catch (error) {
-    console.error(error);
-    res.status(error.response?.status || 500).send(error.response?.data || { error: error.message });
-  }
-});
+    }
+  });
 
-app.listen(3000, () => console.log('Server running on port 3000'));
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => console.log(`Server berjalan di port ${PORT}`));
