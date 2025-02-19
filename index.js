@@ -4,13 +4,15 @@
   const app = express();
   const voice = new ElevenLabs({
     apiKey: "sk_a54cae176ba57e1e27fdc1860219a6cbdf777d0431127035",
-    voiceId: "19zQpXlAQKHlcmXgXfLr"
+    voiceId: "kuOK5r8Woz6lkWaMr8kx"
   });
   app.get('/tts', async (req, res) => {
     const text = req.query.text || "mozzy is cool";
     try {
       const audioStream = await voice.textToSpeechStream({
         textInput: text,
+        stability:       0.5,     
+    similarityBoost: 0.7,    
         modelId: "eleven_multilingual_v2"
       });
       res.setHeader('Content-Type', 'audio/mpeg');
@@ -19,10 +21,12 @@
       try {
         const alternativeVoice = new ElevenLabs({
           apiKey: "sk_541d86e6f71ab1f1e7de7b5019cc475508e7ada24be56a2b",
-          voiceId: "19zQpXlAQKHlcmXgXfLr"
+          voiceId: "kuOK5r8Woz6lkWaMr8kx"
         });
         const audioStream = await alternativeVoice.textToSpeechStream({
           textInput: text,
+          stability:       0.5,     
+    similarityBoost: 0.7,    
           modelId: "eleven_multilingual_v2"
         });
         res.setHeader('Content-Type', 'audio/mpeg');
