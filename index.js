@@ -8,6 +8,17 @@ const voice = new ElevenLabs({
   voiceId: "kuOK5r8Woz6lkWaMr8kx"
 });
 
+app.get('/top', async (req, res) => {
+  try {
+    const response = await axios.get(`https://api.screenshotmachine.com?key=5130b8&url=https%3A%2F%2Fexpress-vercel-ytdl.vercel.app%2Ftopuser&device=phone&dimension=480x800&format=jpg&cacheLimit=1&delay=0`, {responseType: 'arraybuffer'});
+    const data = response.data;
+    res.setHeader('Content-Type', 'image/jpeg');
+    res.send(Buffer.from(data, 'base64'));
+  } catch (error) {
+    res.status(500).send("Error mengambil screenshot");
+  }
+});
+
 app.get('/topuser', async (req, res) => {
   try {
     const response = await axios.get('https://copper-ambiguous-velvet.glitch.me/data/users', {
@@ -19,14 +30,13 @@ app.get('/topuser', async (req, res) => {
 
     const usersObj = data.users;
     let usersArray = Object.keys(usersObj).map(username => ({
-      
       username: username,
       name: usersObj[username].name || username,
       points: usersObj[username].points || 0
     }));
 
     usersArray.sort((a, b) => b.points - a.points);
-    usersArray = usersArray.slice(0, 10);
+    usersArray = usersArray.slice(0, 3);
 
     res.send(`
 <!DOCTYPE html>
@@ -37,39 +47,34 @@ app.get('/topuser', async (req, res) => {
   <title>Top Users</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body { background-color: #121212; color: #f1f1f1; }
-    h1 { color: #ffc107; }
-    .table thead th { border-bottom: 2px solid #ffc107; }
-    .spinner-container { display: flex; justify-content: center; align-items: center; height: 150px; }
+    body { background-color: #000; color: #0f0; font-family: 'Courier New', monospace; }
+    h1 { color: #0f0; text-align: center; font-size: 24px; margin-top: 10px; }
+    .table { width: 100%; margin: auto; border: 1px solid #0f0; }
+    .table th, .table td { border: 1px solid #0f0; text-align: center; }
+    .table thead th { background: #111; }
+    .container { padding: 10px; max-width: 350px; margin: auto; }
+    .error { color: red; text-align: center; }
   </style>
 </head>
 <body>
-  <div class="container py-5">
-    <h1 class="text-center mb-4">Top Users</h1>
-    <div id="alert" class="alert alert-danger d-none" role="alert">Gagal memuat data top users.</div>
-    <div class="table-responsive">
-      <table class="table table-dark table-hover">
-        <thead>
-          <tr>
-            <th scope="col">Rank</th>
-            <th scope="col">Username</th>
-            <th scope="col">Points</th>
-          </tr>
-        </thead>
-        <tbody id="user-table">
-          ${usersArray.length === 0 ? '<tr><td colspan="3" class="text-center">Tidak ada data top users</td></tr>' : 
-            usersArray.map((user, index) => `
-              <tr>
-                <th scope="row">${index + 1}${index === 0 ? ' 👑' : index === 1 ? ' 🔥' : index === 2 ? ' 😎' : ''}</th>
-                <td>${user.name}</td>
-                <td>${user.points}</td>
-              </tr>`).join('')
-          }
-        </tbody>
-      </table>
-    </div>
+  <div class="container">
+    <h1>🏆 3 SEPUH 🥶 🏆</h1>
+    <table class="table table-dark">
+      <thead>
+        <tr><th>Rank</th><th>Username</th><th>Points</th></tr>
+      </thead>
+      <tbody>
+        ${usersArray.length === 0 ? '<tr><td colspan="3">Tidak ada data</td></tr>' : 
+          usersArray.map((user, index) => `
+            <tr>
+              <td>${index + 1}${index === 0 ? ' 👑' : index === 1 ? ' 🔥' : ' 😎'}</td>
+              <td>${user.name}</td>
+              <td>${user.points}</td>
+            </tr>`).join('')
+        }
+      </tbody>
+    </table>
   </div>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
     `);
@@ -81,14 +86,14 @@ app.get('/topuser', async (req, res) => {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Top Users</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #000; color: #0f0; font-family: 'Courier New', monospace; text-align: center; }
+    .error { color: red; margin-top: 20px; }
+  </style>
 </head>
 <body>
-  <div class="container py-5">
-    <h1 class="text-center mb-4">Top Users</h1>
-    <div class="alert alert-danger" role="alert">Gagal memuat data top users.</div>
-  </div>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <h1>🏆 TOP 3 USERS 🏆</h1>
+  <p class="error">Gagal memuat data top users.</p>
 </body>
 </html>
     `);
