@@ -19,7 +19,9 @@ app.get('/topuser', async (req, res) => {
 
     const usersObj = data.users;
     let usersArray = Object.keys(usersObj).map(username => ({
+      
       username: username,
+      name: usersObj[username].name || username,
       points: usersObj[username].points || 0
     }));
 
@@ -59,7 +61,7 @@ app.get('/topuser', async (req, res) => {
             usersArray.map((user, index) => `
               <tr>
                 <th scope="row">${index + 1}${index === 0 ? ' 👑' : index === 1 ? ' 🔥' : index === 2 ? ' 😎' : ''}</th>
-                <td>${user.username}</td>
+                <td>${user.name}</td>
                 <td>${user.points}</td>
               </tr>`).join('')
           }
