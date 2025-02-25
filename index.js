@@ -10,7 +10,7 @@ const voice = new ElevenLabs({
 
 app.get('/top', async (req, res) => {
   try {
-    const response = await axios.get(`https://api.screenshotmachine.com?key=5130b8&url=https%3A%2F%2Fexpress-vercel-ytdl.vercel.app%2Ftopuser&device=phone&dimension=480x300&format=jpg&cacheLimit=1&delay=0`, {responseType: 'arraybuffer'});
+    const response = await axios.get(`https://api.screenshotmachine.com?key=5130b8&url=https%3A%2F%2Fexpress-vercel-ytdl.vercel.app%2Ftopuser&device=phone&dimension=480x300&format=jpg&cacheLimit=0&delay=0`, {responseType: 'arraybuffer'});
     const data = response.data;
     res.setHeader('Content-Type', 'image/jpeg');
     res.send(Buffer.from(data, 'base64'));
@@ -47,19 +47,52 @@ app.get('/topuser', async (req, res) => {
   <title>Top Users</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body { background-color: #000; color: #0f0; font-family: 'Courier New', monospace; }
-    h1 { color: #0f0; text-align: center; font-size: 24px; margin-top: 10px; }
-    .table { width: 100%; margin: auto; border: 1px solid #0f0; }
-    .table th, .table td { border: 1px solid #0f0; text-align: center; }
-    .table thead th { background: #111; }
-    .container { padding: 10px; max-width: 350px; margin: auto; }
-    .error { color: red; text-align: center; }
+    body { 
+      background: url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRc8WX4UeBThhIm1D6dqiiXXv2IYtrNzdcOvtAY_bLqD9vldLRap-pcpcQ&s=10') no-repeat center center fixed; 
+      background-size: cover;
+      font-family: 'Poppins', sans-serif;
+      color: #fff;
+      text-align: center;
+    }
+    .container {
+      background: rgba(0, 0, 0, 0.8);
+      border-radius: 15px;
+      padding: 20px;
+      max-width: 400px;
+      margin: auto;
+      box-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+    }
+    h1 {
+      color: #0f0;
+      font-size: 28px;
+      text-shadow: 0 0 8px #0f0;
+      margin-bottom: 20px;
+    }
+    .table {
+      margin-top: 10px;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .table th {
+      background-color: #111;
+      color: #0f0;
+    }
+    .table tr {
+      transition: 0.3s;
+    }
+    .table tr:hover {
+      background-color: rgba(0, 255, 0, 0.3);
+      transform: scale(1.05);
+    }
+    .rank-icon {
+      font-size: 20px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>🏆 3 SEPUH 🥶 🏆</h1>
-    <table class="table table-dark">
+    <table class="table table-dark table-hover">
       <thead>
         <tr><th>Rank</th><th>Username</th><th>Points</th></tr>
       </thead>
@@ -67,7 +100,7 @@ app.get('/topuser', async (req, res) => {
         ${usersArray.length === 0 ? '<tr><td colspan="3">Tidak ada data</td></tr>' : 
           usersArray.map((user, index) => `
             <tr>
-              <td>${index + 1}${index === 0 ? ' 👑' : index === 1 ? ' 🔥' : ' 😎'}</td>
+              <td><span class="rank-icon">${index + 1}${index === 0 ? ' 👑' : index === 1 ? ' 🔥' : ' 😎'}</span></td>
               <td>${user.name}</td>
               <td>${user.points}</td>
             </tr>`).join('')
@@ -87,19 +120,43 @@ app.get('/topuser', async (req, res) => {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Top Users</title>
   <style>
-    body { background-color: #000; color: #0f0; font-family: 'Courier New', monospace; text-align: center; }
-    .error { color: red; margin-top: 20px; }
+    body { 
+      background: url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRc8WX4UeBThhIm1D6dqiiXXv2IYtrNzdcOvtAY_bLqD9vldLRap-pcpcQ&s=10') no-repeat center center fixed; 
+      background-size: cover;
+      font-family: 'Poppins', sans-serif;
+      color: #fff;
+      text-align: center;
+    }
+    .error-container {
+      background: rgba(0, 0, 0, 0.8);
+      border-radius: 15px;
+      padding: 20px;
+      max-width: 400px;
+      margin: auto;
+      box-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
+    }
+    h1 {
+      color: #f00;
+      font-size: 28px;
+      text-shadow: 0 0 8px #f00;
+    }
+    p {
+      font-size: 18px;
+      font-weight: bold;
+      color: #ff4d4d;
+    }
   </style>
 </head>
 <body>
-  <h1>🏆 TOP 3 USERS 🏆</h1>
-  <p class="error">Gagal memuat data top users.</p>
+  <div class="error-container">
+    <h1>❌ ERROR ❌</h1>
+    <p>Gagal memuat data top users.</p>
+  </div>
 </body>
 </html>
     `);
   }
 });
-
 
 app.get('/tts', async (req, res) => {
   const text = req.query.text || "mozzy is cool";
