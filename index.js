@@ -10,7 +10,7 @@ const voice = new ElevenLabs({
 
 app.get('/top', async (req, res) => {
   try {
-    const response = await axios.get(`https://api.screenshotmachine.com?key=5130b8&url=https%3A%2F%2Fexpress-vercel-ytdl.vercel.app%2Ftopuser&device=phone&dimension=480x300&format=jpg&cacheLimit=0&delay=0`, {responseType: 'arraybuffer'});
+    const response = await axios.get(`https://api.screenshotmachine.com?key=5130b8&url=https%3A%2F%2Fexpress-vercel-ytdl.vercel.app%2Ftopuser&device=phone&dimension=480x300&format=jpg&cacheLimit=1&delay=1`, {responseType: 'arraybuffer'});
     const data = response.data;
     res.setHeader('Content-Type', 'image/jpeg');
     res.send(Buffer.from(data, 'base64'));
