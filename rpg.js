@@ -33,6 +33,10 @@ function initializeUser(users, user) {
 function initializeRPG(users, user) {
   if (!users[user].rpg) {
     users[user].rpg = { level: 1, exp: 0, hp: 100, maxHp: 100, atk: 10, def: 5, gold: 50, inventory: [], equippedWeapon: null, artifacts: [], globalQuestProgress: 0, globalQuestCompleted: false, lastRecovery: Date.now(), adventureStartGold: 0, adventureStartExp: 0, adventureArtifactCount: 0 };
+  } else {
+    if (!Array.isArray(users[user].rpg.artifacts)) {
+      users[user].rpg.artifacts = [];
+    }
   }
 }
 
@@ -105,7 +109,7 @@ router.get('/rpg', async (req, res) => {
       break;
     case 'serang':
       if (!encounter || encounter.type !== 'battle') {
-        responseMsg = 'Tidak ada musuh untuk diserang. Ketik \`mulai\` untuk memulai petualangan.';
+        responseMsg = 'Tidak ada musuh untuk diserang. Ketik `mulai` untuk memulai petualangan.';
       } else {
         let enemy = encounter.enemy;
         let rounds = 0;
@@ -198,7 +202,7 @@ router.get('/rpg', async (req, res) => {
       break;
     case 'lanjut':
       if (!encounter || encounter.type !== 'artifact') {
-        responseMsg = 'Tidak ada artefak untuk dilewati. Ketik \`mulai\` untuk memulai petualangan.';
+        responseMsg = 'Tidak ada artefak untuk dilewati. Ketik `mulai` untuk memulai petualangan.';
       } else {
         const enemy = generateEnemy(player.level);
         room.rpgEncounter[user] = { type: 'battle', enemy };
@@ -209,7 +213,7 @@ router.get('/rpg', async (req, res) => {
       if (encounter) delete room.rpgEncounter[user];
       let goldEarned = player.gold - player.adventureStartGold;
       let expEarned = player.exp - player.adventureStartExp;
-      let artifactsEarned = player.artifacts.slice(player.adventureArtifactCount).map(a => a.name).join(', ') || 'Tidak ada';
+      let artifactsEarned = Array.isArray(player.artifacts) ? player.artifacts.slice(player.adventureArtifactCount).map(a => a.name).join(', ') || 'Tidak ada' : 'Tidak ada';
       responseMsg = `Petualangan dihentikan. Total pendapatan: *${goldEarned} emas* *${expEarned} EXP* *Artefak:* ${artifactsEarned}.`;
       break;
     case 'status':
@@ -256,7 +260,7 @@ router.get('/rpg', async (req, res) => {
         if (args.length === 2) {
           let listMsg = 'Toko Senjata:\n';
           weaponStore.forEach(ws => { listMsg += `${ws.id}. ${ws.name} - ${ws.costGold} emas\n`; });
-          listMsg += 'Untuk membeli, ketik: `toko senjata [nomor]``';
+          listMsg += 'Untuk membeli, ketik: `toko senjata [nomor]`';
           responseMsg = listMsg;
         } else if (args.length >= 3) {
           let weaponId = parseInt(args[2]);
