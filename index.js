@@ -1,8 +1,11 @@
 const express = require('express');
 const axios = require('axios');
 const ElevenLabs = require('elevenlabs-node');
+const rpg = require('./rpg');
 const app = express();
 
+
+app.use(rpg);
 const voice = new ElevenLabs({
   apiKey: "sk_2496699c1ca47e57043385c08716c39700150d2a2bbc4938",
   voiceId: "kuOK5r8Woz6lkWaMr8kx"
