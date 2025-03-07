@@ -4,20 +4,12 @@ const router = express.Router();
 const API_ENDPOINT = 'https://copper-ambiguous-velvet.glitch.me/data';
 const USER_AGENT = 'Mozilla/5.0';
 const apiGetData = async (dataType) => {
-  try {
-    const response = await axios.get(`${API_ENDPOINT}/${dataType}`, { headers: { 'User-Agent': USER_AGENT } });
-    return response.data;
-  } catch (error) {
-    return { users: {}, rooms: {} };
-  }
+  try { const response = await axios.get(`${API_ENDPOINT}/${dataType}`, { headers: { 'User-Agent': USER_AGENT } }); return response.data; }
+  catch (error) { return { users: {}, rooms: {} }; }
 };
 const apiWriteData = async (dataType, data) => {
-  try {
-    await axios.post(`${API_ENDPOINT}/${dataType}`, data, { headers: { 'User-Agent': USER_AGENT, 'Content-Type': 'application/json' } });
-    return true;
-  } catch (error) {
-    return false;
-  }
+  try { await axios.post(`${API_ENDPOINT}/${dataType}`, data, { headers: { 'User-Agent': USER_AGENT, 'Content-Type': 'application/json' } }); return true; }
+  catch (error) { return false; }
 };
 function initializeUser(users, user) {
   if (!users[user]) { users[user] = { points: 0, harian: { value: 0, expires: Date.now() + 86400000 } }; }
@@ -51,7 +43,7 @@ const villainList = [
   { name: 'Bandit Raja', baseHp: 80, hpFactor: 14, baseAtk: 12, atkFactor: 3, baseDef: 6, defFactor: 2, baseExp: 40 },
   { name: 'Penjahat Misterius', baseHp: 70, hpFactor: 13, baseAtk: 11, atkFactor: 3, baseDef: 5, defFactor: 2, baseExp: 35 },
   { name: 'Pengkhianat', baseHp: 90, hpFactor: 16, baseAtk: 13, atkFactor: 4, baseDef: 7, defFactor: 3, baseExp: 45 },
-  { name: 'Pembunuh Bayaran', baseHp: 75, hpFactor: 15, atkFactor: 3, baseAtk: 12, baseDef: 6, defFactor: 2, baseExp: 40 },
+  { name: 'Pembunuh Bayaran', baseHp: 75, hpFactor: 15, baseAtk: 12, atkFactor: 3, baseDef: 6, defFactor: 2, baseExp: 40 },
   { name: 'Pencuri', baseHp: 60, hpFactor: 10, baseAtk: 9, atkFactor: 3, baseDef: 4, defFactor: 1, baseExp: 25 }
 ];
 function generateVillain(playerLevel) {
@@ -108,18 +100,20 @@ const moveList = [
 ];
 function getRandomMoves(n) {
   let shuffled = moveList.slice();
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
+  for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; }
   return shuffled.slice(0, n);
 }
 const resourceList = [
   { type: 'buah', name: 'Buah Ajaib' },
   { type: 'sungai', name: 'Sungai Berkah' },
+  { type: 'danau', name: 'Danau Ajaib' },
   { type: 'pohon', name: 'Pohon Sakti' },
   { type: 'gua', name: 'Gua Mistis' },
-  { type: 'danau', name: 'Danau Ajaib' }
+  { type: 'hutan', name: 'Hutan Sunyi' },
+  { type: 'padang', name: 'Padang Ilahi' },
+  { type: 'reruntuhan', name: 'Reruntuhan Kuno' },
+  { type: 'kuil', name: 'Kuil Rahasia' },
+  { type: 'pegunungan', name: 'Pegunungan Perkasa' }
 ];
 function generateEncounter(playerLevel) {
   let r = Math.random();
@@ -142,17 +136,17 @@ function calculateWinChance(player, enemy) {
   let chance = Math.min(100, Math.floor((player.hp / (enemy.hp + 1)) * 100));
   return chance;
 }
-function checkPlayerLevelUp(player, battleLog) {
+function checkPlayerLevelUp(player, log) {
   while (player.exp >= player.level * 100) {
     player.exp -= player.level * 100;
     player.level++;
     player.maxHp += 10;
     player.atk += 2;
     player.def += 1;
-    player.hp = player.maxHp;
-    battleLog += `\n*Level Up!* Sekarang Level: ${player.level}. (MaxHP +10, ATK +2, DEF +1)`;
+    player.hp = Math.min(player.hp, player.maxHp);
+    log += `\n*Level Up!* Sekarang Level: ${player.level} (MaxHP +10, ATK +2, DEF +1)`;
   }
-  return battleLog;
+  return log;
 }
 router.get('/rpg', async (req, res) => {
   const user = req.query.user;
@@ -164,11 +158,8 @@ router.get('/rpg', async (req, res) => {
   initializeUser(usersData.users, user);
   initializeRPG(usersData.users, user);
   const player = usersData.users[user].rpg;
-  if (now - player.lastRecovery >= 1800000) {
-    const recover = Math.floor(player.maxHp * 0.2);
-    player.hp = Math.min(player.hp + recover, player.maxHp);
-    player.lastRecovery = now;
-  }
+  let recover = Math.floor((player.maxHp - player.hp) * 0.2);
+  if (now - player.lastRecovery >= 1800000) { player.hp = Math.min(player.hp + recover, player.maxHp); player.lastRecovery = now; }
   if (!roomsData.rooms[roomId]) roomsData.rooms[roomId] = {};
   const room = roomsData.rooms[roomId];
   if (!room.rpgEncounter) room.rpgEncounter = {};
@@ -186,12 +177,29 @@ router.get('/rpg', async (req, res) => {
         player.adventureArtifactCount = player.artifacts.length;
         const newEncounter = generateEncounter(player.level);
         room.rpgEncounter[user] = newEncounter;
-        if (newEncounter.type === 'battle') { responseMsg = `> Petualangan Dimulai\n*Kamu menghadapi ${newEncounter.encounter} ${newEncounter.enemy.name} (Lvl ${newEncounter.enemy.level}, HP ${newEncounter.enemy.hp}).*\nPilih _serang_ untuk menyerang, _kabur_ untuk lari, atau _berhenti_ untuk keluar.`; }
+        if (newEncounter.type === 'battle') {
+          let winChance = calculateWinChance(player, newEncounter.enemy);
+          responseMsg = `> Petualangan Dimulai\n*Kamu menghadapi ${newEncounter.encounter} ${newEncounter.enemy.name} (Lvl ${newEncounter.enemy.level}, HP ${newEncounter.enemy.hp}).*\n*HP Kamu:* ${player.hp}/${player.maxHp} | *Peluang Menang:* ${winChance}%\nPilih _serang_ untuk menyerang, _kabur_ untuk lari, atau _berhenti_ untuk keluar.`;
+        }
         else if (newEncounter.type === 'resource') {
-          if (newEncounter.resourceType === 'buah' || newEncounter.resourceType === 'sungai' || newEncounter.resourceType === 'danau') { responseMsg = `> Petualangan Dimulai\n*Kamu menemukan ${newEncounter.name}.*\nKetik _ambil_ untuk memanfaatkannya.`; }
-          else if (newEncounter.resourceType === 'pohon') { responseMsg = `> Petualangan Dimulai\n*Kamu menemukan ${newEncounter.name} yang tampak sakti.*\nKetik _ambil_ untuk mendapatkan berkat kekuatan.`; }
-          else if (newEncounter.resourceType === 'gua') { responseMsg = `> Petualangan Dimulai\n*Kamu menemukan ${newEncounter.name} yang misterius.*\nKetik _ambil_ untuk menjelajahinya.`; }
-          else if (newEncounter.resourceType === 'kitab') { responseMsg = `> Petualangan Dimulai\n*Kamu menemukan *${newEncounter.book.name}*.*\nKetik _ambil_ untuk mempelajari jurusnya.`; }
+          if (newEncounter.resourceType === 'buah' || newEncounter.resourceType === 'sungai' || newEncounter.resourceType === 'danau')
+            responseMsg = `> Petualangan Dimulai\n*Kamu menemukan ${newEncounter.name}.*\nKetik _ambil_ untuk memanfaatkannya.`;
+          else if (newEncounter.resourceType === 'pohon')
+            responseMsg = `> Petualangan Dimulai\n*Kamu menemukan ${newEncounter.name} yang sakti.*\nKetik _ambil_ untuk mendapatkan bonus ATK.`;
+          else if (newEncounter.resourceType === 'gua')
+            responseMsg = `> Petualangan Dimulai\n*Kamu menemukan ${newEncounter.name} yang misterius.*\nKetik _ambil_ untuk menjelajahinya.`;
+          else if (newEncounter.resourceType === 'hutan')
+            responseMsg = `> Petualangan Dimulai\n*Kamu memasuki ${newEncounter.name} yang sunyi.*\nKetik _ambil_ untuk mencari rahasia alam.`;
+          else if (newEncounter.resourceType === 'padang')
+            responseMsg = `> Petualangan Dimulai\n*Kamu tiba di ${newEncounter.name} yang memesona.*\nKetik _ambil_ untuk menikmati pemandangannya.`;
+          else if (newEncounter.resourceType === 'reruntuhan')
+            responseMsg = `> Petualangan Dimulai\n*Kamu menemukan ${newEncounter.name} yang penuh misteri.*\nKetik _ambil_ untuk mencari harta karun.`;
+          else if (newEncounter.resourceType === 'kuil')
+            responseMsg = `> Petualangan Dimulai\n*Kamu menemukan ${newEncounter.name} yang angker.*\nKetik _ambil_ untuk menjelajahinya.`;
+          else if (newEncounter.resourceType === 'pegunungan')
+            responseMsg = `> Petualangan Dimulai\n*Kamu mendaki ${newEncounter.name} yang megah.*\nKetik _ambil_ untuk merasakan tantangannya.`;
+          else if (newEncounter.resourceType === 'kitab')
+            responseMsg = `> Petualangan Dimulai\n*Kamu menemukan *${newEncounter.book.name}*.*\nKetik _ambil_ untuk mempelajari jurusnya.`;
         }
       }
       break;
@@ -199,13 +207,12 @@ router.get('/rpg', async (req, res) => {
       if (!encounter || encounter.type !== 'battle') { responseMsg = `Nih, tidak ada lawan untuk diserang. Ketik _mulai_ untuk petualangan baru!`; }
       else {
         let enemy = encounter.enemy;
-        let winChance = calculateWinChance(player, enemy);
-        let battleLog = `> Pertempuran Dimulai\n*HP Kamu:* ${player.hp}/${player.maxHp}\n*Peluang Menang:* ${winChance}%\n`;
+        let battleLog = `> Pertempuran Dimulai\n`;
         let startHP = player.hp;
         let rounds = 0;
         while (enemy.hp > 0 && player.hp > 0) {
           rounds++;
-          let weaponBonus = player.equippedWeapon ? player.equippedWeapon.bonus : 0;
+          let weaponBonus = player.equippedWeapon ? Number(player.equippedWeapon.bonus) : 0;
           let maxDamage = Math.max(player.atk + weaponBonus - enemy.def, 1);
           let damageToEnemy = Math.floor(maxDamage * (Math.random() * 0.1 + 0.9));
           if (player.books && player.books.length > 0 && Math.random() < 0.3) {
@@ -264,22 +271,35 @@ router.get('/rpg', async (req, res) => {
           if (Math.random() < 0.5) { let trap = Math.floor(player.maxHp * (0.1 + Math.random() * 0.2)); player.hp = Math.max(player.hp - trap, 0); responseMsg = `~Jebakan!~ HP kamu berkurang *${trap}*. Sekarang HP: *${player.hp}*.`; }
           else { let art = encounter.artifact; player.artifacts.push(art); responseMsg = `Mantap! Kamu mendapatkan artefak *${art.name}* (XP +${art.upgradeValue}).`; }
           delete room.rpgEncounter[user];
-        } else if (encounter.type === 'resource') {
+        }
+        else if (encounter.type === 'resource') {
           if (encounter.resourceType === 'buah' || encounter.resourceType === 'sungai' || encounter.resourceType === 'danau') {
             if (Math.random() < 0.2) { let poison = Math.floor(player.maxHp * (0.1 + Math.random() * 0.1)); player.hp = Math.max(player.hp - poison, 0); responseMsg = `~Beracun!~ ${encounter.name} ternyata beracun. HP kamu berkurang *${poison}*.`; }
-            else { let healAmount = Math.floor(player.maxHp * (0.2 + Math.random() * 0.6)); player.hp = Math.min(player.hp + healAmount, player.maxHp); responseMsg = `Mantap! ${encounter.name} menyembuhkan HP kamu sebanyak *${healAmount}* HP.`; }
-            if (encounter.resourceType === 'pohon') { player.atk += 2; responseMsg = `*Berkat Pohon Sakti!* ATK kamu bertambah 2 permanen.`; }
-            if (encounter.resourceType === 'gua') {
-              if (Math.random() < 0.5) { let bonusGold = Math.floor(Math.random() * 21) + 10; player.gold += bonusGold; responseMsg = `Kamu menemukan harta di ${encounter.name} dan mendapatkan *${bonusGold}* emas!`; }
-              else { let trap = Math.floor(player.maxHp * 0.1); player.hp = Math.max(player.hp - trap, 0); responseMsg = `~Bahaya!~ Di ${encounter.name} kamu terkena jebakan dan kehilangan *${trap}* HP.`; }
-            }
-            delete room.rpgEncounter[user];
-          } else if (encounter.resourceType === 'kitab') {
+            else { let healAmount = Math.floor(player.maxHp * (0.2 + Math.random() * 0.6)); player.hp = Math.min(player.hp + healAmount, player.maxHp); responseMsg = `Mantap! ${encounter.name} menyembuhkan HP kamu sebanyak *${healAmount}*.`; }
+          }
+          else if (encounter.resourceType === 'pohon') { player.atk += 2; responseMsg = `*Berkat Pohon Sakti!* ATK kamu bertambah 2 permanen.`; }
+          else if (encounter.resourceType === 'gua') {
+            if (Math.random() < 0.5) { let bonusGold = Math.floor(Math.random() * 21) + 10; player.gold += bonusGold; responseMsg = `Kamu menemukan harta di ${encounter.name} dan mendapatkan *${bonusGold}* emas!`; }
+            else { let trap = Math.floor(player.maxHp * 0.1); player.hp = Math.max(player.hp - trap, 0); responseMsg = `~Bahaya!~ Di ${encounter.name} kamu terkena jebakan dan kehilangan *${trap}* HP.`; }
+          }
+          else if (encounter.resourceType === 'hutan') { player.exp += 20; responseMsg = `Di ${encounter.name}, kamu menemukan pengetahuan alam dan mendapatkan *20 EXP*.`; }
+          else if (encounter.resourceType === 'padang') { player.atk += 1; responseMsg = `Keindahan ${encounter.name} membuat semangatmu naik. ATK bertambah 1 permanen.`; }
+          else if (encounter.resourceType === 'reruntuhan') { let goldFound = Math.floor(Math.random() * 16) + 10; player.gold += goldFound; responseMsg = `Di ${encounter.name}, kamu menemukan harta tersembunyi sebanyak *${goldFound}* emas!`; }
+          else if (encounter.resourceType === 'kuil') {
+            if (Math.random() < 0.5) { let art = generateArtifactEncounter(); player.artifacts.push(art); responseMsg = `Di ${encounter.name}, kamu menemukan artefak langka: *${art.name}* (XP +${art.upgradeValue}).`; }
+            else { let bonusExp = 30; player.exp += bonusExp; responseMsg = `Di ${encounter.name}, kekuatan kuno memberimu *${bonusExp} EXP*.`; }
+          }
+          else if (encounter.resourceType === 'pegunungan') { 
+            if (Math.random() < 0.5) { let bonusGold = Math.floor(Math.random() * 26) + 15; player.gold += bonusGold; responseMsg = `Di ${encounter.name}, kamu menemukan deposit emas sebanyak *${bonusGold}*.`; }
+            else { let bonusDef = 1; player.def += bonusDef; responseMsg = `Di ${encounter.name}, kekokohan alam meningkatkan DEF-mu sebesar *${bonusDef}* permanen.`; }
+          }
+          else if (encounter.resourceType === 'kitab') {
             player.books.push(encounter.book);
             responseMsg = `Kamu mempelajari *${encounter.book.name}* dan mempelajari jurus: ${encounter.book.moves.join(', ')}.`;
-            delete room.rpgEncounter[user];
           }
-        } else { responseMsg = `Tidak ada yang bisa diambil.`; }
+          delete room.rpgEncounter[user];
+        }
+        else { responseMsg = `Tidak ada yang bisa diambil.`; }
       }
       break;
     case 'lanjut':
@@ -289,10 +309,24 @@ router.get('/rpg', async (req, res) => {
         room.rpgEncounter[user] = newEncounter;
         if (newEncounter.type === 'battle') { responseMsg = `Kamu memilih untuk lanjut petualangan! Sekarang, kamu menghadapi ${newEncounter.encounter} ${newEncounter.enemy.name} (Lvl ${newEncounter.enemy.level}, HP ${newEncounter.enemy.hp}).\nPilih _serang_, _kabur_, atau _berhenti_.`; }
         else if (newEncounter.type === 'resource') {
-          if (newEncounter.resourceType === 'buah' || newEncounter.resourceType === 'sungai' || newEncounter.resourceType === 'danau') { responseMsg = `Kamu menemukan ${newEncounter.name}. Ketik _ambil_ untuk memanfaatkannya.`; }
-          else if (newEncounter.resourceType === 'pohon') { responseMsg = `Kamu menemukan ${newEncounter.name} yang tampak sakti. Ketik _ambil_ untuk mendapatkan berkat kekuatan.`; }
-          else if (newEncounter.resourceType === 'gua') { responseMsg = `Kamu menemukan ${newEncounter.name} yang misterius. Ketik _ambil_ untuk menjelajahinya.`; }
-          else if (newEncounter.resourceType === 'kitab') { responseMsg = `Kamu menemukan *${newEncounter.book.name}*. Ketik _ambil_ untuk mempelajarinya.`; }
+          if (newEncounter.resourceType === 'buah' || newEncounter.resourceType === 'sungai' || newEncounter.resourceType === 'danau')
+            responseMsg = `Kamu menemukan ${newEncounter.name}. Ketik _ambil_ untuk memanfaatkannya.`;
+          else if (newEncounter.resourceType === 'pohon')
+            responseMsg = `Kamu menemukan ${newEncounter.name} yang sakti. Ketik _ambil_ untuk mendapatkan bonus ATK.`;
+          else if (newEncounter.resourceType === 'gua')
+            responseMsg = `Kamu menemukan ${newEncounter.name} yang misterius. Ketik _ambil_ untuk menjelajahinya.`;
+          else if (newEncounter.resourceType === 'hutan')
+            responseMsg = `Kamu memasuki ${newEncounter.name} yang sunyi. Ketik _ambil_ untuk mencari rahasia alam.`;
+          else if (newEncounter.resourceType === 'padang')
+            responseMsg = `Kamu tiba di ${newEncounter.name} yang memesona. Ketik _ambil_ untuk menikmati pemandangannya.`;
+          else if (newEncounter.resourceType === 'reruntuhan')
+            responseMsg = `Kamu menemukan ${newEncounter.name} yang penuh misteri. Ketik _ambil_ untuk mencari harta karun.`;
+          else if (newEncounter.resourceType === 'kuil')
+            responseMsg = `Kamu menemukan ${newEncounter.name} yang angker. Ketik _ambil_ untuk menjelajahinya.`;
+          else if (newEncounter.resourceType === 'pegunungan')
+            responseMsg = `Kamu mendaki ${newEncounter.name} yang megah. Ketik _ambil_ untuk merasakan tantangannya.`;
+          else if (newEncounter.resourceType === 'kitab')
+            responseMsg = `Kamu menemukan *${newEncounter.book.name}*. Ketik _ambil_ untuk mempelajarinya.`;
         }
       }
       break;
@@ -316,7 +350,7 @@ router.get('/rpg', async (req, res) => {
       else {
         let cost = Math.ceil(((player.maxHp - player.hp) / player.maxHp) * 10);
         if (player.gold < cost) responseMsg = `Emas kamu kurang! Butuh *${cost}* emas.`;
-        else { player.gold -= cost; player.hp = player.maxHp; responseMsg = `Heal berhasil! HP kamu penuh sekarang dengan mengurangi *${cost}* emas.`; }
+        else { player.gold -= cost; player.hp = Math.min(player.hp + Math.floor((player.maxHp - player.hp) * 0.5), player.maxHp); responseMsg = `Heal berhasil! HP kamu bertambah, mengurangi *${cost}* emas.`; }
       }
       break;
     case 'toko':
@@ -386,9 +420,10 @@ router.get('/rpg', async (req, res) => {
             else {
               let removed = 0;
               player.artifacts = player.artifacts.filter(a => { if (a.name === selectedArtifact.name && removed < qty) { removed++; return false; } return true; });
-              let totalXP = qty * selectedArtifact.xp;
-              player.equippedWeapon.xp = (player.equippedWeapon.xp || 0) + totalXP;
-              let forgeMsg = `Artefak *${selectedArtifact.name}* digunakan menempa senjata. XP senjata bertambah *${totalXP}*.`;
+              let currentXp = Number(player.equippedWeapon.xp) || 0;
+              currentXp += qty * selectedArtifact.xp;
+              player.equippedWeapon.xp = currentXp;
+              let forgeMsg = `Artefak *${selectedArtifact.name}* digunakan menempa senjata. XP senjata bertambah *${qty * selectedArtifact.xp}*.`;
               while (player.equippedWeapon.xp >= 100) { player.equippedWeapon.xp -= 100; player.equippedWeapon.level++; player.equippedWeapon.bonus++; forgeMsg += ` Senjata naik level ke *${player.equippedWeapon.level}*!`; }
               responseMsg = forgeMsg;
             }
