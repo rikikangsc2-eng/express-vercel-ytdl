@@ -25,6 +25,7 @@
     "elevenlabs-node": "^2.0.3",
     "express": "^4.17.1",
     "google-tts-api": "^2.0.2",
-    "node-gtts": "^2.0.2"
+    "node-gtts": "^2.0.2",
+    "openai-gpt-token-counter": "^1.1.1"
   }
 }
