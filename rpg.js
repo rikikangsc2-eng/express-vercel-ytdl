@@ -119,14 +119,8 @@ function generateEncounter(playerLevel) {
   let r = Math.random();
   if (r < 0.35) return { type: 'battle', encounter: 'monster', enemy: generateMonster(playerLevel) };
   else if (r < 0.70) return { type: 'battle', encounter: 'villain', enemy: generateVillain(playerLevel) };
-  else if (r < 0.9) {
-    let resource = resourceList[Math.floor(Math.random() * resourceList.length)];
-    return { type: 'resource', resourceType: resource.type, name: resource.name };
-  } else {
-    let randomBookName = bookNames[Math.floor(Math.random() * bookNames.length)];
-    let book = { name: randomBookName, moves: getRandomMoves(3) };
-    return { type: 'resource', resourceType: 'kitab', book: book };
-  }
+  else if (r < 0.9) { let resource = resourceList[Math.floor(Math.random() * resourceList.length)]; return { type: 'resource', resourceType: resource.type, name: resource.name }; }
+  else { let randomBookName = bookNames[Math.floor(Math.random() * bookNames.length)]; let book = { name: randomBookName, moves: getRandomMoves(3) }; return { type: 'resource', resourceType: 'kitab', book: book }; }
 }
 if (!global.quest) {
   if (Math.random() < 0.5) global.quest = { type: 'kill', target: 'Goblin', expReward: 50, goldReward: 20, completed: false };
@@ -143,7 +137,7 @@ function checkPlayerLevelUp(player, log) {
     player.maxHp += 10;
     player.atk += 2;
     player.def += 1;
-    player.hp = Math.min(player.hp, player.maxHp);
+    if (player.hp > player.maxHp) player.hp = player.maxHp;
     log += `\n*Level Up!* Sekarang Level: ${player.level} (MaxHP +10, ATK +2, DEF +1)`;
   }
   return log;
@@ -205,7 +199,9 @@ router.get('/rpg', async (req, res) => {
       break;
     case 'serang':
       if (!encounter || encounter.type !== 'battle') { responseMsg = `Nih, tidak ada lawan untuk diserang. Ketik _mulai_ untuk petualangan baru!`; }
+      else if (!player.equippedWeapon) { responseMsg = `Kamu harus memakai senjata terlebih dahulu. Gunakan perintah _pakai_.`; }
       else {
+        if (!player.equippedWeapon.xp && player.equippedWeapon.xp !== 0) { player.equippedWeapon.xp = 0; }
         let enemy = encounter.enemy;
         let battleLog = `> Pertempuran Dimulai\n`;
         let startHP = player.hp;
@@ -386,7 +382,7 @@ router.get('/rpg', async (req, res) => {
       else {
         let idx = parseInt(args[1]) - 1;
         if (isNaN(idx) || idx < 0 || idx >= player.inventory.length) responseMsg = `Indeks senjata tidak valid.`;
-        else { player.equippedWeapon = player.inventory[idx]; responseMsg = `Senjata *${player.equippedWeapon.name}* sudah dipakai. Siap bertempur!`; }
+        else { player.equippedWeapon = player.inventory[idx]; if (!player.equippedWeapon.xp && player.equippedWeapon.xp !== 0) player.equippedWeapon.xp = 0; responseMsg = `Senjata *${player.equippedWeapon.name}* sudah dipakai. Siap bertempur!`; }
       }
       break;
     case 'jual':
@@ -431,8 +427,14 @@ router.get('/rpg', async (req, res) => {
         }
       }
       break;
+    case 'restart':
+      if (args[1] && args[1].toLowerCase() === 'y') {
+        usersData.users[user].rpg = { level: 1, exp: 0, hp: 120, maxHp: 120, atk: 12, def: 7, gold: 60, inventory: [], equippedWeapon: null, artifacts: [], books: [], globalQuestProgress: 0, globalQuestCompleted: false, lastRecovery: Date.now(), adventureStartGold: 0, adventureStartExp: 0, adventureArtifactCount: 0 };
+        responseMsg = `> Game Restarted\nData RPG kamu telah direset.`;
+      } else { responseMsg = `Konfirmasi restart: Ketik _restart y_ untuk mereset data RPG kamu.`; }
+      break;
     default:
-      responseMsg = `Perintah tidak dikenal. Coba: _mulai_, _serang_, _kabur_, _ambil_, _lanjut_, _berhenti_, _status_, _quest_, _heal_, _toko artefak_, _inv_, _pakai_, _jual_, _tempa_.`;
+      responseMsg = `Perintah tidak dikenal. Coba: _mulai_, _serang_, _kabur_, _ambil_, _lanjut_, _berhenti_, _status_, _quest_, _heal_, _toko artefak_, _inv_, _pakai_, _jual_, _tempa_, _restart_.`;
   }
   await apiWriteData('users', usersData);
   await apiWriteData('rooms', roomsData);
