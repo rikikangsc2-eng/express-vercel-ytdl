@@ -4,6 +4,7 @@ const router = express.Router();
 const API_ENDPOINT = 'https://copper-ambiguous-velvet.glitch.me/data';
 const USER_AGENT = 'Mozilla/5.0';
 
+// Fungsi untuk mendapatkan data dari API
 const apiGetData = async (dataType) => {
   try {
     const response = await axios.get(`${API_ENDPOINT}/${dataType}`, {
@@ -15,6 +16,7 @@ const apiGetData = async (dataType) => {
   }
 };
 
+// Fungsi untuk menulis data ke API
 const apiWriteData = async (dataType, data) => {
   try {
     await axios.post(`${API_ENDPOINT}/${dataType}`, data, {
@@ -26,6 +28,7 @@ const apiWriteData = async (dataType, data) => {
   }
 };
 
+// Inisialisasi user
 function initializeUser(users, user) {
   if (!users[user]) {
     users[user] = { points: 0, harian: { value: 0, expires: Date.now() + 86400000 } };
@@ -35,16 +38,17 @@ function initializeUser(users, user) {
   }
 }
 
+// Inisialisasi RPG untuk user dengan stat yang lebih menguntungkan
 function initializeRPG(users, user) {
   if (!users[user].rpg) {
     users[user].rpg = {
       level: 1,
       exp: 0,
-      hp: 100,
-      maxHp: 100,
-      atk: 10,
-      def: 5,
-      gold: 50,
+      hp: 120,
+      maxHp: 120,
+      atk: 12,
+      def: 7,
+      gold: 60,
       inventory: [],
       equippedWeapon: null,
       artifacts: [],
@@ -64,11 +68,12 @@ function initializeRPG(users, user) {
   }
 }
 
+// Daftar monster (15 jenis bisa ditambahkan)
 function generateMonster(playerLevel) {
   const monsters = [
     { name: 'Goblin', baseHp: 70, hpFactor: 15, baseAtk: 10, atkFactor: 3, baseDef: 5, defFactor: 2, baseExp: 30 },
     { name: 'Orc', baseHp: 80, hpFactor: 16, baseAtk: 11, atkFactor: 3, baseDef: 6, defFactor: 2, baseExp: 35 },
-    // ... (tambahkan hingga 15 jenis jika diperlukan)
+    // Tambahkan jenis monster lainnya jika diperlukan
   ];
   const selected = monsters[Math.floor(Math.random() * monsters.length)];
   const level = Math.max(1, Math.floor(Math.random() * playerLevel) + 1);
@@ -79,11 +84,12 @@ function generateMonster(playerLevel) {
   return { name: selected.name, level, hp, atk, def, expReward };
 }
 
+// Daftar penjahat (villain)
 function generateVillain(playerLevel) {
   const villains = [
     { name: 'Bandit Raja', baseHp: 80, hpFactor: 14, baseAtk: 12, atkFactor: 3, baseDef: 6, defFactor: 2, baseExp: 40 },
     { name: 'Penjahat Misterius', baseHp: 70, hpFactor: 13, baseAtk: 11, atkFactor: 3, baseDef: 5, defFactor: 2, baseExp: 35 },
-    // ... (tambahkan hingga 15 jenis jika diperlukan)
+    // Tambahkan jenis villain lainnya jika diperlukan
   ];
   const selected = villains[Math.floor(Math.random() * villains.length)];
   const level = Math.max(1, Math.floor(Math.random() * playerLevel) + 1);
@@ -94,38 +100,89 @@ function generateVillain(playerLevel) {
   return { name: selected.name, level, hp, atk, def, expReward };
 }
 
+// Daftar artefak dengan nama kreatif; artefak yang lebih mahal memberikan XP upgrade lebih besar
+const artifactStore = [
+  { id: 1, name: 'Cincin Sang Fajar', costGold: 10, upgradeValue: 15 },
+  { id: 2, name: 'Medali Bayangan', costGold: 15, upgradeValue: 22 },
+  { id: 3, name: 'Amulet Kemenangan', costGold: 20, upgradeValue: 30 },
+  { id: 4, name: 'Gelang Angkasa', costGold: 25, upgradeValue: 35 },
+  { id: 5, name: 'Kalung Kehidupan', costGold: 30, upgradeValue: 45 },
+  { id: 6, name: 'Pedang Legenda', costGold: 35, upgradeValue: 50 },
+  { id: 7, name: 'Permata Surya', costGold: 40, upgradeValue: 55 },
+  { id: 8, name: 'Batu Waktu', costGold: 45, upgradeValue: 60 },
+  { id: 9, name: 'Topeng Misteri', costGold: 50, upgradeValue: 65 },
+  { id: 10, name: 'Jimat Keabadian', costGold: 55, upgradeValue: 70 },
+  { id: 11, name: 'Talisman Nirwana', costGold: 60, upgradeValue: 75 },
+  { id: 12, name: 'Totem Penguasa', costGold: 65, upgradeValue: 80 },
+  { id: 13, name: 'Mahkota Bintang', costGold: 70, upgradeValue: 85 },
+  { id: 14, name: 'Tongkat Surga', costGold: 75, upgradeValue: 90 },
+  { id: 15, name: 'Permata Abadi', costGold: 80, upgradeValue: 100 }
+];
+
+// Fungsi untuk menghasilkan artefak sebagai drop encounter
+// Menggunakan pembobotan agar artefak yang lebih murah lebih sering muncul
 function generateArtifactEncounter() {
-  // Menghasilkan artefak drop acak dari 15 jenis
-  let artifactId = Math.floor(Math.random() * 15) + 1;
-  return { name: `Artefak ${artifactId}`, xp: 20 };
+  let index = Math.floor(Math.pow(Math.random(), 2) * artifactStore.length);
+  return { ...artifactStore[index] };
 }
 
+// Daftar nama kitab kreatif
+const bookNames = [
+  "Grimoire of the Eternal Flame",
+  "Codex of the Celestial Oracle",
+  "Tome of Mystic Whispers",
+  "Chronicle of the Forgotten Realms",
+  "Manual of the Arcane Arts",
+  "Scripture of Divine Light",
+  "Annals of the Shadow Realm",
+  "Book of Abyssal Echoes",
+  "Volume of Silent Dawn",
+  "Ledger of Cosmic Truths",
+  "Register of the Timeless One",
+  "Diaries of the Wandering Sage",
+  "Memoirs of the Storm Bringer",
+  "Journal of Lunar Prophecy",
+  "Records of the Starborne"
+];
+
+// Daftar jurus untuk kitab
+const moveList = [
+  "Flame Strike", "Celestial Burst", "Mystic Wind", "Shadow Slash", "Divine Smite", "Abyssal Grasp",
+  "Solar Flare", "Lunar Eclipse", "Storm Call", "Cosmic Ray", "Arcane Surge", "Ethereal Wave",
+  "Phantom Rush", "Spectral Blade", "Temporal Shift"
+];
+
+// Fungsi helper untuk mengambil n jurus acak dari moveList
+function getRandomMoves(n) {
+  let shuffled = moveList.slice();
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled.slice(0, n);
+}
+
+// Fungsi untuk menghasilkan encounter
 function generateEncounter(playerLevel) {
   let r = Math.random();
-  if (r < 0.35) {
+  if (r < 0.4) {
     return { type: 'battle', encounter: 'monster', enemy: generateMonster(playerLevel) };
   } else if (r < 0.7) {
     return { type: 'battle', encounter: 'villain', enemy: generateVillain(playerLevel) };
-  } else if (r < 0.85) {
+  } else if (r < 0.9) {
     // Encounter resource: Buah atau Sungai
     let resourceType = Math.random() < 0.5 ? 'buah' : 'sungai';
     let name = resourceType === 'buah' ? 'Buah Ajaib' : 'Sungai Berkah';
     return { type: 'resource', resourceType: resourceType, name: name };
   } else {
     // Encounter resource: Kitab Kuno
-    let bookId = Math.floor(Math.random() * 15) + 1;
-    let book = { name: `Kitab Kuno ${bookId}`, moves: ["Jurus 1", "Jurus 2", "Jurus 3"] };
+    let randomBookName = bookNames[Math.floor(Math.random() * bookNames.length)];
+    let book = { name: randomBookName, moves: getRandomMoves(3) };
     return { type: 'resource', resourceType: 'kitab', book: book };
   }
 }
 
-// Toko artefak: daftar 15 jenis artefak
-const artifactStore = [];
-for (let i = 1; i <= 15; i++) {
-  artifactStore.push({ id: i, name: `Artefak Permata ${i}`, costGold: 5 * i, upgradeValue: 20 });
-}
-
-// Quest global sederhana: bunuh 1 monster atau kunjungi 1 tempat
+// Quest global sederhana (misalnya, bunuh 1 monster atau kunjungi 1 tempat)
 if (!global.quest) {
   if (Math.random() < 0.5)
     global.quest = { type: 'kill', target: 'Goblin', expReward: 50, goldReward: 20, completed: false };
@@ -133,6 +190,7 @@ if (!global.quest) {
     global.quest = { type: 'visit', target: 'Sungai Berkah', expReward: 30, goldReward: 15, completed: false };
 }
 
+// Fungsi sederhana untuk menghitung peluang menang (dapat disesuaikan lagi)
 function calculateWinChance(player, enemy) {
   let chance = Math.min(100, Math.floor((player.hp / (enemy.hp + 1)) * 100));
   return chance;
@@ -212,28 +270,28 @@ router.get('/rpg', async (req, res) => {
           delete room.rpgEncounter[user];
         } else {
           battleLog += `*Mantap!* Kamu mengalahkan ${enemy.name} dalam ${rounds} serangan.\n`;
-          // Hadiah emas: 50% peluang mendapatkan emas (10-35) dengan kemungkinan jebakan 20%
-          if (Math.random() < 0.5) {
-            if (Math.random() < 0.2) {
+          // Hadiah emas: 60% peluang mendapatkan emas (10-35) dengan kemungkinan jebakan 15%
+          if (Math.random() < 0.6) {
+            if (Math.random() < 0.15) {
               let trapDamage = Math.floor(player.maxHp * 0.1);
               player.hp = Math.max(player.hp - trapDamage, 0);
-              battleLog += `~Jebakan emas!~ Kamu terkena trap dan kehilangan ${trapDamage} HP.\n`;
+              battleLog += `~Jebakan emas!~ Kamu terkena trap dan kehilangan *${trapDamage}* HP.\n`;
             } else {
               let goldEarned = Math.floor(Math.random() * (35 - 10 + 1)) + 10;
               player.gold += goldEarned;
               battleLog += `Kamu mendapatkan *${goldEarned}* emas!\n`;
             }
           }
-          // Hadiah artefak: 30% peluang dengan kemungkinan jebakan 20%
-          if (Math.random() < 0.3) {
-            if (Math.random() < 0.2) {
+          // Hadiah artefak: 40% peluang dengan kemungkinan jebakan 15%
+          if (Math.random() < 0.4) {
+            if (Math.random() < 0.15) {
               let trapDamage = Math.floor(player.maxHp * 0.05);
               player.hp = Math.max(player.hp - trapDamage, 0);
-              battleLog += `~Jebakan artefak!~ Kamu terperangkap dan kehilangan ${trapDamage} HP.\n`;
+              battleLog += `~Jebakan artefak!~ Kamu kehilangan *${trapDamage}* HP.\n`;
             } else {
               let art = generateArtifactEncounter();
               player.artifacts.push(art);
-              battleLog += `Kamu menemukan artefak: *${art.name}*!\n`;
+              battleLog += `Kamu menemukan artefak: *${art.name}* (XP +${art.upgradeValue})!\n`;
             }
           }
           // Jika pemain memiliki kitab, ada peluang aktifkan jurus acak
@@ -281,6 +339,7 @@ router.get('/rpg', async (req, res) => {
         responseMsg = `Tidak ada yang bisa diambil. Ketik _mulai_ untuk petualangan baru!`;
       } else {
         if (encounter.type === 'artifact') {
+          // Jika encounter artefak (meski jarang terjadi, karena drop artefak terjadi saat serang)
           if (Math.random() < 0.5) {
             let trap = Math.floor(player.maxHp * (0.1 + Math.random() * 0.2));
             player.hp = Math.max(player.hp - trap, 0);
@@ -288,7 +347,7 @@ router.get('/rpg', async (req, res) => {
           } else {
             let art = encounter.artifact;
             player.artifacts.push(art);
-            responseMsg = `Mantap! Kamu mendapatkan artefak *${art.name}*.`;
+            responseMsg = `Mantap! Kamu mendapatkan artefak *${art.name}* (XP +${art.upgradeValue}).`;
           }
           delete room.rpgEncounter[user];
         } else if (encounter.type === 'resource') {
@@ -305,7 +364,7 @@ router.get('/rpg', async (req, res) => {
             delete room.rpgEncounter[user];
           } else if (encounter.resourceType === 'kitab') {
             player.books.push(encounter.book);
-            responseMsg = `Kamu mempelajari ${encounter.book.name} dan mempelajari jurus: ${encounter.book.moves.join(', ')}.`;
+            responseMsg = `Kamu mempelajari *${encounter.book.name}* dan mempelajari jurus: ${encounter.book.moves.join(', ')}.`;
             delete room.rpgEncounter[user];
           }
         } else {
@@ -326,7 +385,7 @@ router.get('/rpg', async (req, res) => {
           if (newEncounter.resourceType === 'buah' || newEncounter.resourceType === 'sungai') {
             responseMsg = `Kamu menemukan ${newEncounter.name}. Ketik _ambil_ untuk memanfaatkannya.`;
           } else if (newEncounter.resourceType === 'kitab') {
-            responseMsg = `Kamu menemukan ${newEncounter.book.name}. Ketik _ambil_ untuk mempelajarinya.`;
+            responseMsg = `Kamu menemukan *${newEncounter.book.name}*. Ketik _ambil_ untuk mempelajarinya.`;
           }
         }
       }
@@ -371,14 +430,14 @@ router.get('/rpg', async (req, res) => {
       break;
 
     case 'toko':
-      // Toko artefak, bukan toko senjata
+      // Toko artefak: gunakan perintah "toko artefak [nomor] [jumlah]"
       if (args.length < 2) {
         responseMsg = `Perintah toko tidak valid. Gunakan: toko artefak`;
       } else if (args[1].toLowerCase() === 'artefak') {
         if (args.length === 2) {
           let listMsg = `> Toko Artefak\n`;
           artifactStore.forEach(art => {
-            listMsg += `\`${art.id}\`. ${art.name} - *${art.costGold}* emas\n`;
+            listMsg += `\`${art.id}\`. ${art.name} - *${art.costGold}* emas, XP bonus: *${art.upgradeValue}*\n`;
           });
           listMsg += `Untuk membeli, ketik: toko artefak [nomor] [jumlah]`;
           responseMsg = listMsg;
@@ -395,6 +454,7 @@ router.get('/rpg', async (req, res) => {
             else {
               player.gold -= totalCost;
               for (let i = 0; i < quantity; i++) {
+                // Beli artefak dan masukkan ke inventory; XP bonus sesuai artefak
                 player.artifacts.push({ name: selected.name, xp: selected.upgradeValue });
               }
               responseMsg = `Pembelian berhasil: *${quantity}* ${selected.name} masuk ke inventory artefak.`;
@@ -472,7 +532,7 @@ router.get('/rpg', async (req, res) => {
                 }
                 return true;
               });
-              let totalXP = qty * 20;
+              let totalXP = qty * selectedArtifact.xp;
               player.equippedWeapon.xp = (player.equippedWeapon.xp || 0) + totalXP;
               responseMsg = `Artefak *${selectedArtifact.name}* digunakan menempa senjata. XP senjata bertambah *${totalXP}*.\n`;
               if (player.equippedWeapon.xp >= 100) {
@@ -488,7 +548,7 @@ router.get('/rpg', async (req, res) => {
       break;
 
     default:
-      responseMsg = `Perintah tidak dikenal. Coba: _mulai_, _serang_, _kabur_, _ambil_, _lanjut_, _berhenti_, _status_, _quest_, _heal_, _toko artefak_, _inv_, _pakai_, _jual_, _tempa_.`;
+      responseMsg = `Perintah tidak dikenal. Coba: \`mulai\`, \`serang\`, \`kabur\`, \`ambil\`, \`lanjut\`, \`berhenti\`, \`status\`, \`quest\`, \`heal\`, \`toko artefak\`, \`inv\`, \`pakai\`, \`jual\`, \`tempa\`.`;
   }
 
   await apiWriteData('users', usersData);
