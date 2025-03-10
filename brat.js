@@ -48,7 +48,7 @@ router.get('/brat', (req, res) => {
       justify-content: center;
       text-align: center;
       white-space: normal;
-      word-wrap: break-word;
+      overflow-wrap: break-word;
       padding: 10px;
       box-sizing: border-box;
     }
@@ -59,15 +59,18 @@ router.get('/brat', (req, res) => {
   <script>
     function adjustFontSize() {
       var container = document.getElementById('text-container')
-      var availableWidth = window.innerWidth
-      var availableHeight = window.innerHeight
+      var availableWidth = container.clientWidth
+      var availableHeight = container.clientHeight
+      // Apply a margin factor so text never touches the very edges
+      var targetWidth = availableWidth * 0.95
+      var targetHeight = availableHeight * 0.95
       container.style.fontSize = '10px'
       var low = 1, high = 1000, fontSize
       while (low <= high) {
         fontSize = Math.floor((low + high) / 2)
         container.style.fontSize = fontSize + 'px'
         var rect = container.getBoundingClientRect()
-        if (rect.width <= availableWidth && rect.height <= availableHeight) {
+        if (rect.width <= targetWidth && rect.height <= targetHeight) {
           low = fontSize + 1
         } else {
           high = fontSize - 1
