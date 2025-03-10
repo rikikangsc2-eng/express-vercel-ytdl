@@ -12,13 +12,21 @@ const voice = new ElevenLabs({
 });
 
 app.get('/tulis', async (req, res) => {
-  if (!req.query.text && !req.query.type) return res.status(400).send('Missing required parameters');
+  const { text, type } = req.query;
+  if (!text || !type) {
+    return res.status(400).send('Missing required parameters');
+  }
+
+  // Membangun URL target tanpa spasi ekstra dan melakukan encoding parameter
+  const targetUrl = `https://express-vercel-ytdl.vercel.app/brat?type=${encodeURIComponent(type)}&text=${encodeURIComponent(text)}`;
+
   try {
-    const response = await axios.get(`https://api.screenshotmachine.com?key=${sskey}&url=https%3A%2F%2Fexpress-vercel-ytdl.vercel.app%2Fbrat%3Ftype%3D${encodeURIComponent(req.query.type)}%26text%3D${encodeURIComponent(req.query.text)}&device=phone&dimension=720x720`, {responseType: 'arraybuffer'});
-    const data = response.data;
+    const screenshotUrl = `https://api.screenshotmachine.com?key=${sskey}&url=${encodeURIComponent(targetUrl)}&device=phone&dimension=720x720`;
+    const response = await axios.get(screenshotUrl, { responseType: 'arraybuffer' });
     res.setHeader('Content-Type', 'image/jpeg');
-    res.send(Buffer.from(data, 'base64'));
+    res.send(response.data);
   } catch (error) {
+    console.error("Error retrieving screenshot:", error);
     res.status(500).send("Error mengambil screenshot");
   }
 });
