@@ -1,7 +1,7 @@
 const express = require('express');
 const axios = require('axios');
 const ElevenLabs = require('elevenlabs-node');
-const rpg = require('./rpg');
+const rpg = require('./brat');
 const app = express();
 
 
