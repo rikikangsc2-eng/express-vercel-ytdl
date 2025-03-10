@@ -21,7 +21,7 @@ app.get('/tulis', async (req, res) => {
   const targetUrl = `https://express-vercel-ytdl.vercel.app/brat?type=${encodeURIComponent(type)}&text=${encodeURIComponent(text)}`;
 
   try {
-    const screenshotUrl = `https://api.screenshotmachine.com?key=${sskey}&url=${encodeURIComponent(targetUrl)}&device=phone&dimension=720x720`;
+    const screenshotUrl = `https://api.screenshotmachine.com?key=${sskey}&url=${encodeURIComponent(targetUrl)}&device=phone&dimension=500x500`;
     const response = await axios.get(screenshotUrl, { responseType: 'arraybuffer' });
     res.setHeader('Content-Type', 'image/jpeg');
     res.send(response.data);
