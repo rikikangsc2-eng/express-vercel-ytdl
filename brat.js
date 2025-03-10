@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 
 router.get('/brat', (req, res) => {
-  const text = req.query.text || ''
+  const text = req.query.text || 'Brat'
   const type = req.query.type
   let background = ''
   let color = ''
@@ -22,61 +22,39 @@ router.get('/brat', (req, res) => {
     background = 'white'
     color = 'black'
   }
-
+  
   res.send(`
 <html>
 <head>
   <meta charset="UTF-8">
   <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-    }
-    body {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: ${background};
-      color: ${color};
-    }
-    #text-container {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      white-space: normal;
-      overflow-wrap: break-word;
-      padding: 10px;
-      box-sizing: border-box;
-    }
+    html, body {margin: 0; padding: 0; height: 100%;}
+    body {display: flex; align-items: center; justify-content: center; background: ${background}; color: ${color};}
+    #text-container {width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; text-align: center; padding: 10px; box-sizing: border-box;}
+    #text-span {display: inline-block; white-space: normal; word-wrap: break-word;}
   </style>
 </head>
 <body>
-  <div id="text-container">${text}</div>
+  <div id="text-container"><span id="text-span">${text}</span></div>
   <script>
     function adjustFontSize() {
       var container = document.getElementById('text-container')
-      var availableWidth = container.clientWidth
-      var availableHeight = container.clientHeight
-      // Apply a margin factor so text never touches the very edges
-      var targetWidth = availableWidth * 0.95
-      var targetHeight = availableHeight * 0.95
-      container.style.fontSize = '10px'
+      var textSpan = document.getElementById('text-span')
+      var availableWidth = container.clientWidth * 0.95
+      var availableHeight = container.clientHeight * 0.95
+      textSpan.style.fontSize = '10px'
       var low = 1, high = 1000, fontSize
       while (low <= high) {
         fontSize = Math.floor((low + high) / 2)
-        container.style.fontSize = fontSize + 'px'
-        var rect = container.getBoundingClientRect()
-        if (rect.width <= targetWidth && rect.height <= targetHeight) {
+        textSpan.style.fontSize = fontSize + 'px'
+        var rect = textSpan.getBoundingClientRect()
+        if (rect.width <= availableWidth && rect.height <= availableHeight) {
           low = fontSize + 1
         } else {
           high = fontSize - 1
         }
       }
-      container.style.fontSize = high + 'px'
+      textSpan.style.fontSize = high + 'px'
     }
     window.addEventListener('resize', adjustFontSize)
     adjustFontSize()
