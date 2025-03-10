@@ -3,7 +3,7 @@ const axios = require('axios');
 const ElevenLabs = require('elevenlabs-node');
 const rpg = require('./brat');
 const app = express();
-const sskey = ['5130b8', 'c87ac1', '21a5cf', '047eff'];
+const sskey = ['5130b8', 'c87ac1', '21a5cf', '047eff'][Math.floor(Math.random() * 4)];
 
 app.use(rpg);
 const voice = new ElevenLabs({
