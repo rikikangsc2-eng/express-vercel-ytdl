@@ -22,6 +22,34 @@ router.get('/brat', (req, res) => {
     background = 'white'
     color = 'black'
   }
-  res.send(`<html><head><meta charset="UTF-8"></head><body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:${background};color:${color};"><div>${text}</div></body></html>`)
+
+  res.send(`<html>
+<head>
+  <meta viweport="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <style>
+    body {margin:0; display:flex; align-items:center; justify-content:center; height:100vh; background:${background}; color:${color};}
+    #text-container {text-align:center;}
+  </style>
+</head>
+<body>
+  <div id="text-container">${text}</div>
+  <script>
+    function adjustFontSize() {
+      var container = document.getElementById('text-container')
+      var length = container.innerText.length
+      if (!length) return
+      var scale = Math.sqrt(window.innerWidth * window.innerHeight)
+      var fontSize = scale / (length / 2)
+      var maxFontSize = window.innerHeight * 0.5
+      if (fontSize > maxFontSize) fontSize = maxFontSize
+      container.style.fontSize = fontSize + 'px'
+    }
+    window.addEventListener('resize', adjustFontSize)
+    adjustFontSize()
+  </script>
+</body>
+</html>`)
 })
+
 module.exports = router

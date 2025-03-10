@@ -11,6 +11,19 @@ const voice = new ElevenLabs({
   voiceId: "kuOK5r8Woz6lkWaMr8kx"
 });
 
+app.get('/tulis', async (req, res) => {
+  if (!req.query.text && !req.query.type) return res.status(400).send('Missing required parameters');
+  const go = `https://express-vercel-ytdl.vercel.app/brat?type=${req.query.type}&text=${req.query.text}`;
+  try {
+    const response = await axios.get(`https://api.screenshotmachine.com?key=5130b8&url=${go}&device=phone&dimension=480x480&format=jpg&cacheLimit=1&delay=1`, {responseType: 'arraybuffer'});
+    const data = response.data;
+    res.setHeader('Content-Type', 'image/jpeg');
+    res.send(Buffer.from(data, 'base64'));
+  } catch (error) {
+    res.status(500).send("Error mengambil screenshot");
+  }
+});
+
 app.get('/top', async (req, res) => {
   try {
     const response = await axios.get(`https://api.screenshotmachine.com?key=5130b8&url=https%3A%2F%2Fexpress-vercel-ytdl.vercel.app%2Ftopuser&device=phone&dimension=480x300&format=jpg&cacheLimit=1&delay=1`, {responseType: 'arraybuffer'});
