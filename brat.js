@@ -23,13 +23,35 @@ router.get('/brat', (req, res) => {
     color = 'black'
   }
 
-  res.send(`<html>
+  res.send(`
+<html>
 <head>
-  <meta viweport="width=device-width, initial-scale=1.0">
   <meta charset="UTF-8">
   <style>
-    body {margin:0; display:flex; align-items:center; justify-content:center; height:100vh; background:${background}; color:${color};}
-    #text-container {text-align:center;}
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: ${background};
+      color: ${color};
+    }
+    #text-container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      white-space: normal;
+      word-wrap: break-word;
+      padding: 10px;
+      box-sizing: border-box;
+    }
   </style>
 </head>
 <body>
@@ -37,19 +59,28 @@ router.get('/brat', (req, res) => {
   <script>
     function adjustFontSize() {
       var container = document.getElementById('text-container')
-      var length = container.innerText.length
-      if (!length) return
-      var scale = Math.sqrt(window.innerWidth * window.innerHeight)
-      var fontSize = scale / (length / 2)
-      var maxFontSize = window.innerHeight * 0.5
-      if (fontSize > maxFontSize) fontSize = maxFontSize
-      container.style.fontSize = fontSize + 'px'
+      var availableWidth = window.innerWidth
+      var availableHeight = window.innerHeight
+      container.style.fontSize = '10px'
+      var low = 1, high = 1000, fontSize
+      while (low <= high) {
+        fontSize = Math.floor((low + high) / 2)
+        container.style.fontSize = fontSize + 'px'
+        var rect = container.getBoundingClientRect()
+        if (rect.width <= availableWidth && rect.height <= availableHeight) {
+          low = fontSize + 1
+        } else {
+          high = fontSize - 1
+        }
+      }
+      container.style.fontSize = high + 'px'
     }
     window.addEventListener('resize', adjustFontSize)
     adjustFontSize()
   </script>
 </body>
-</html>`)
+</html>
+  `)
 })
 
 module.exports = router
