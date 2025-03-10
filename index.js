@@ -14,7 +14,7 @@ const voice = new ElevenLabs({
 app.get('/tulis', async (req, res) => {
   if (!req.query.text && !req.query.type) return res.status(400).send('Missing required parameters');
   try {
-    const response = await axios.get(`https://api.screenshotmachine.com?key=${sskey}&url=https%3A%2F%2Fexpress-vercel-ytdl.vercel.app%2Fbrat%3Ftype%3D${encodeURIComponent(req.query.type)}%26text%3D${encodeURIComponent(req.query.text)}&device=phone&dimension=480xfull`, {responseType: 'arraybuffer'});
+    const response = await axios.get(`https://api.screenshotmachine.com?key=${sskey}&url=https%3A%2F%2Fexpress-vercel-ytdl.vercel.app%2Fbrat%3Ftype%3D${encodeURIComponent(req.query.type)}%26text%3D${encodeURIComponent(req.query.text)}&device=phone&dimension=720x720`, {responseType: 'arraybuffer'});
     const data = response.data;
     res.setHeader('Content-Type', 'image/jpeg');
     res.send(Buffer.from(data, 'base64'));
