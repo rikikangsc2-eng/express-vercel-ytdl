@@ -1,120 +1,133 @@
-const express = require('express')
-const router = express.Router()
+ const express = require('express')
+ const router = express.Router()
 
-router.get('/brat', (req, res) => {
-  const text = req.query.text || 'Hai saya suka dengan eva'
-  const type = req.query.type
-  let background = ''
-  let color = ''
-  
-  // Warna dasar & warna teks berdasarkan parameter
-  if (type === '1') {
-    background = 'green'
-    color = 'white'
-  } else if (type === '2') {
-    background = 'white'
-    color = 'black'
-  } else if (type === '3') {
-    background = 'black'
-    color = 'white'
-  } else if (type === '4') {
-    background = 'cyan'
-    color = 'white'
-  } else {
-    background = 'white'
-    color = 'black'
-  }
-  
-  res.send(`
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8" />
-  <title>Brat Generator</title>
-  <style>
-    html, body {
-      margin: 0; 
-      padding: 0; 
-      height: 100%;
-    }
-    body {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: ${background};
-      color: ${color};
-      /* Hilangkan margin default pada body agar benar-benar penuh */
-    }
-    #text-container {
-      /* Kontainer utama, lebar & tinggi penuh */
-      width: 100%;
-      height: 100%;
-      /* Sedikit padding agar teks tidak menempel di tepi */
-      padding: 20px;
-      box-sizing: border-box;
-      
-      /* Letakkan teks di kiri atas */
-      display: flex;
-      align-items: flex-start;
-      justify-content: flex-start;
-      /* Atur agar wrap otomatis */
-      overflow-wrap: break-word;
-      text-align: left;
-    }
-    #text-span {
-      /* Inline-block agar mudah diukur ukurannya */
-      display: inline-block;
-      /* Boleh pakai white-space normal juga */
-      white-space: normal;
-    }
-  </style>
-</head>
-<body>
-  <div id="text-container">
-    <span id="text-span">${text}</span>
-  </div>
-  <script>
-    // Fungsi pencarian biner untuk mencari font-size terbesar yang muat di #text-container
-    function adjustFontSize() {
-      const container = document.getElementById('text-container')
-      const textSpan = document.getElementById('text-span')
+ router.get('/brat', (req, res) => {
+   const text = req.query.text || 'Brat'
+   const type = req.query.type
+   let theme = 'white' // default
 
-      // Ambil dimensi kontainer
-      const containerWidth = container.clientWidth
-      const containerHeight = container.clientHeight
+   if (type === '1') {
+     theme = 'green'
+   } else if (type === '2') {
+     theme = 'white'
+   } else if (type === '3') {
+     theme = 'black'
+   } else if (type === '4') {
+     theme = 'blue'
+   }
 
-      // Mulai dengan fontSize paling kecil agar perhitungan benar
-      textSpan.style.fontSize = '10px'
+   res.send(`
+ <!DOCTYPE html>
+ <html>
+ <head>
+   <meta charset="UTF-8">
+   <title>Brat Generator</title>
+   <style>
+     /* Reset dasar */
+     html, body {
+       margin: 0;
+       padding: 0;
+       height: 100%;
+     }
+     /* Tema berdasarkan type */
+     body.white {
+       background-color: #ffffff;
+       color: #000000;
+       font-family: Arial, sans-serif;
+       text-align: center;
+     }
+     body.green {
+       background-color: #8ACF00;
+       color: #000000;
+       font-family: "Arial Narrow", sans-serif;
+       text-align: center;
+     }
+     body.black {
+       background-color: #000000;
+       color: #ffffff;
+       font-family: Arial, sans-serif;
+       text-align: left;
+     }
+     body.blue {
+       background-color: #0A00AD;
+       color: #DE0100;
+       font-family: "Compacta Black", sans-serif;
+       text-transform: uppercase;
+       text-align: center;
+     }
+     /* Kontainer teks */
+     #text-container {
+       width: 100%;
+       height: 100%;
+       padding: 20px;
+       box-sizing: border-box;
+       display: flex;
+       align-items: center;
+       justify-content: center;
+     }
+     /* Span teks */
+     #text-span {
+       display: inline-block;
+       white-space: normal;
+       word-wrap: break-word;
+       overflow-wrap: break-word;
+     }
+   </style>
+ </head>
+ <body class="${theme}">
+   <div id="text-container">
+     <span id="text-span">${text}</span>
+   </div>
+   <script>
+     // Fungsi untuk menyisipkan <br> agar teks terpisah merata
+     function insertLineBreaks() {
+       var textSpan = document.getElementById('text-span');
+       var originalText = textSpan.innerText;
+       if (originalText.indexOf(' ') !== -1) {
+         var words = originalText.split(' ');
+         var linesCount = Math.ceil(Math.sqrt(words.length));
+         var wordsPerLine = Math.ceil(words.length / linesCount);
+         var newText = '';
+         for (var i = 0; i < words.length; i++) {
+           newText += words[i];
+           if ((i + 1) % wordsPerLine === 0 && (i + 1) !== words.length) {
+             newText += '<br>';
+           } else {
+             newText += ' ';
+           }
+         }
+         textSpan.innerHTML = newText.trim();
+       }
+     }
+     // Fungsi untuk menyesuaikan ukuran font agar pas dengan kontainer
+     function adjustFontSize() {
+       var container = document.getElementById('text-container');
+       var textSpan = document.getElementById('text-span');
+       var availableWidth = container.clientWidth * 0.98;
+       var availableHeight = container.clientHeight * 0.98;
+       textSpan.style.fontSize = '10px';
+       var low = 1, high = 1000, fontSize;
+       while (low <= high) {
+         fontSize = Math.floor((low + high) / 2);
+         textSpan.style.fontSize = fontSize + 'px';
+         var rect = textSpan.getBoundingClientRect();
+         if (rect.width <= availableWidth && rect.height <= availableHeight) {
+           low = fontSize + 1;
+         } else {
+           high = fontSize - 1;
+         }
+       }
+       textSpan.style.fontSize = high + 'px';
+     }
+     window.addEventListener('load', function() {
+       insertLineBreaks();
+       adjustFontSize();
+     });
+     window.addEventListener('resize', adjustFontSize);
+   </script>
+ </body>
+ </html>
+   `)
+ })
 
-      let low = 1
-      let high = 1000
-      let bestFit = 10
-
-      while (low <= high) {
-        const mid = Math.floor((low + high) / 2)
-        textSpan.style.fontSize = mid + 'px'
-
-        const rect = textSpan.getBoundingClientRect()
-        // Periksa apakah masih muat di dalam kontainer
-        if (rect.width <= containerWidth && rect.height <= containerHeight) {
-          bestFit = mid
-          low = mid + 1
-        } else {
-          high = mid - 1
-        }
-      }
-
-      // Set fontSize terbesar yang muat
-      textSpan.style.fontSize = bestFit + 'px'
-    }
-
-    // Panggil saat load dan saat resize
-    window.addEventListener('load', adjustFontSize)
-    window.addEventListener('resize', adjustFontSize)
-  </script>
-</body>
-</html>
-  `)
-})
-
-module.exports = router
+ module.exports = router
