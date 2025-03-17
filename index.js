@@ -301,5 +301,74 @@ app.get('/tts', async (req, res) => {
   }
 });
 
+app.get('/artinama', async (req, res) => {
+    const { nama } = req.query;
+    if (!nama) {
+        return res.status(400).send("Nama parameter is required");
+    }
+
+    try {
+        const response = await axios.get(`https://api.siputzx.my.id/api/primbon/artinama?nama=${nama}`);
+        const data = response.data.data;
+
+        res.send(`
+        <html>
+        <head>
+            <title>Arti Nama ${data.nama}</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+        </head>
+        <body class="bg-white text-gray-900">
+            <div class="max-w-screen-lg mx-auto p-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                        <img src="https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png" alt="Google logo" class="w-24 h-auto">
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <img src="https://nirkyy.koyeb.app/logo.jpg" alt="User profile picture" class="w-6 h-6 rounded-full">
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="flex items-center border border-gray-300 rounded-full px-4 py-2">
+                        <i class="fas fa-search text-gray-500"></i>
+                        <input type="text" class="ml-2 w-full outline-none" value="arti nama ${data.nama}">
+                        <i class="fas fa-times text-gray-500"></i>
+                        <i class="fas fa-microphone text-blue-500 ml-2"></i>
+                    </div>
+                </div>
+                <div class="flex space-x-4 mt-4 text-sm text-gray-600">
+                    <a href="#" class="border-b-2 border-black pb-1">Semua</a>
+                    <a href="#">Gambar</a>
+                    <a href="#">Shopping</a>
+                    <a href="#">Berita</a>
+                    <a href="#">Video</a>
+                </div>
+                <div class="mt-4">
+                    <div class="flex items-center space-x-2">
+                        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTuy9ucswKvd8dPqg9CvrmJiEH5ngED9xLgrQ&s" alt="AI Summary Icon" class="w-4 h-4">
+                        <span class="font-medium">Ringkasan AI</span>
+                    </div>
+                    <div class="flex items-center space-x-2 mt-2">
+                        <button class="flex items-center space-x-1 bg-blue-100 text-blue-600 px-2 py-1 rounded-full">
+                            <i class="fas fa-volume-up"></i>
+                            <span>Dengarkan</span>
+                        </button>
+                    </div>
+                    <p class="mt-2">Nama "<span class="bg-blue-100">${data.nama}</span>" memiliki arti:</p>
+                    <p class="mt-2">${data.arti.replace(/\n/g, '<br>')}</p>
+                </div>
+                <div class="mt-4">
+                    <p class="font-medium">Catatan:</p>
+                    <p class="mt-2">${data.catatan}</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        `);
+    } catch (error) {
+        res.status(500).send("Internal Server Error");
+    }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server berjalan di port ${PORT}`));
