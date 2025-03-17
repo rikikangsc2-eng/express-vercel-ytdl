@@ -11,6 +11,27 @@ const voice = new ElevenLabs({
   voiceId: "kuOK5r8Woz6lkWaMr8kx"
 });
 
+app.get('/khodam', async (req, res) => {
+  const { nama } = req.query;
+  if (!nama) {
+    return res.status(400).send('Parameter nama diperlukan');
+  }
+  const imageUrl = `https://api.screenshotmachine.com/?key=${sskey}&url=https://khodam.vercel.app/v2?nama=${encodeURIComponent(nama)}&_rsc=1iwkq&device=phone&dimension=480x440&format=jpg&cacheLimit=14&delay=1000&zoom=200`;
+
+  try {
+    const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+    res.writeHead(200, {
+      'Content-Type': 'image/jpeg',
+      'Content-Length': response.data.length
+    });
+    res.end(response.data);
+  } catch (error) {
+    console.error("Gagal mengambil gambar:", error);
+    res.status(500).send('Gagal mengambil gambar dari API screenshot.');
+  }
+});
+
+
 app.get('/tulis', async (req, res) => {
   const { text, type } = req.query;
   if (!text || !type) {
