@@ -11,7 +11,7 @@ const voice = new ElevenLabs({
   voiceId: "kuOK5r8Woz6lkWaMr8kx"
 });
 
-app.get('/khodam', async (req, res) => {
+app.get('/khodam-mentah', async (req, res) => {
     try {
         const nama = req.query.nama || 'Pengguna';
         const response = await axios.get('https://raw.githubusercontent.com/SazumiVicky/cek-khodam/refs/heads/main/khodam/list.txt');
@@ -46,7 +46,7 @@ app.get('/khodam', async (req, res) => {
                 <p class="text-lg font-semibold">by <span class="text-yellow-500">@NirKyy</span></p>
             </div>
             <div class="mt-8 bg-black bg-opacity-70 p-6 rounded-lg text-center">
-                <p class="text-lg font-semibold">Khodam <span class="bg-red-700 px-2 py-1 rounded-md font-bold">${nama}</span> hari ini adalah...</p>
+                <p class="text-lg font-semibold">Khodam <span class="bg-red-700 px-2 py-1 rounded-md font-bold">${nama}</span> Adalah...</p>
                 <p class="text-4xl font-extrabold mt-4 text-pink-500">
                     <span class="text-yellow-400">✨</span>${randomKhodam}<span class="text-yellow-400">✨</span>
                 </p>
@@ -69,7 +69,7 @@ app.get('/khodam', async (req, res) => {
   }
 
   // URL target untuk API Khodam dengan parameter nama yang di-encode
-  const targetUrl = `https://khodam.vercel.app/v2?nama=${encodeURIComponent(nama)}`;
+  const targetUrl = `https://express-vercel-ytdl.vercel.app/khodam-mentah?nama=Nirsaaaaaaa${encodeURIComponent(nama)}`;
 
   // Membangun query string untuk API screenshotmachine
   const params = new URLSearchParams({
