@@ -16,7 +16,24 @@ app.get('/khodam', async (req, res) => {
   if (!nama) {
     return res.status(400).send('Parameter nama diperlukan');
   }
-  const imageUrl = `https://api.screenshotmachine.com/?key=${sskey}&url=https://khodam.vercel.app/v2?nama=${encodeURIComponent(nama)}&_rsc=1iwkq&device=phone&dimension=480x440&format=jpg&cacheLimit=14&delay=1000&zoom=200`;
+
+  // URL target untuk API Khodam dengan parameter nama yang di-encode
+  const targetUrl = `https://khodam.vercel.app/v2?nama=${encodeURIComponent(nama)}`;
+
+  // Membangun query string untuk API screenshotmachine
+  const params = new URLSearchParams({
+    key: sskey,
+    url: targetUrl,
+    _rsc: '1iwkq',
+    device: 'phone',
+    dimension: '480x440',
+    format: 'jpg',
+    cacheLimit: '14',
+    delay: '1000',
+    zoom: '200'
+  });
+
+  const imageUrl = `https://api.screenshotmachine.com/?${params.toString()}`;
 
   try {
     const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
@@ -30,7 +47,6 @@ app.get('/khodam', async (req, res) => {
     res.status(500).send('Gagal mengambil gambar dari API screenshot.');
   }
 });
-
 
 app.get('/tulis', async (req, res) => {
   const { text, type } = req.query;
