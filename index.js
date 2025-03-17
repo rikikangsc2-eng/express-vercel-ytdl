@@ -69,7 +69,7 @@ app.get('/khodam', async (req, res) => {
   }
 
   // URL target untuk API Khodam dengan parameter nama yang di-encode
-  const targetUrl = `https://express-vercel-ytdl.vercel.app/khodam-mentah?nama=Nirsaaaaaaa${encodeURIComponent(nama)}`;
+  const targetUrl = `https://express-vercel-ytdl.vercel.app/khodam-mentah?nama=${encodeURIComponent(nama)}`;
 
   // Membangun query string untuk API screenshotmachine
   const params = new URLSearchParams({
