@@ -12,6 +12,57 @@ const voice = new ElevenLabs({
 });
 
 app.get('/khodam', async (req, res) => {
+    try {
+        const nama = req.query.nama || 'Pengguna';
+        const response = await axios.get('https://raw.githubusercontent.com/SazumiVicky/cek-khodam/refs/heads/main/khodam/list.txt');
+        const khodamList = response.data.split('\n').filter(k => k.trim() !== '');
+
+        if (khodamList.length === 0) {
+            return res.status(500).send('Data khodam tidak tersedia.');
+        }
+
+        const randomKhodam = khodamList[Math.floor(Math.random() * khodamList.length)];
+
+        const htmlResponse = `
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Cek Khodam</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+            <style>
+                body {
+                    background: url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTHCJs_iGwp6gFGaAM9hps67-SXl9Q5xlH3gk8nRKAzNF8Fs2SjpqM3QkGH&s=10') no-repeat center center fixed;
+                    background-size: cover;
+                }
+            </style>
+        </head>
+        <body class="flex flex-col items-center justify-center min-h-screen bg-black bg-opacity-50 text-white">
+            <div class="text-center">
+                <h1 class="text-4xl font-extrabold">
+                    Cek <span class="text-red-500">Khodam</span>
+                </h1>
+                <p class="text-lg font-semibold">by <span class="text-yellow-500">@NirKyy</span></p>
+            </div>
+            <div class="mt-8 bg-black bg-opacity-70 p-6 rounded-lg text-center">
+                <p class="text-lg font-semibold">Khodam <span class="bg-red-700 px-2 py-1 rounded-md font-bold">${nama}</span> hari ini adalah...</p>
+                <p class="text-4xl font-extrabold mt-4 text-pink-500">
+                    <span class="text-yellow-400">✨</span>${randomKhodam}<span class="text-yellow-400">✨</span>
+                </p>
+            </div>
+        </body>
+        </html>
+        `;
+
+        res.send(htmlResponse);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Terjadi kesalahan saat mengambil data khodam.');
+    }
+});
+
+app.get('/khodam', async (req, res) => {
   const { nama } = req.query;
   if (!nama) {
     return res.status(400).send('Parameter nama diperlukan');
