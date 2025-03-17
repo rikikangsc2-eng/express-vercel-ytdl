@@ -3,7 +3,10 @@ const axios = require('axios');
 const ElevenLabs = require('elevenlabs-node');
 const rpg = require('./brat');
 const app = express();
-const sskey = ['5130b8', 'c87ac1', '21a5cf', '047eff'][Math.floor(Math.random() * 4)];
+
+const listKey = ['5130b8', 'c87ac1', '21a5cf', '047eff', '09fd34'];
+const randomKey = () => listKey[Math.floor(Math.random() * listKey.length)];
+const sskey = randomKey();
 
 app.use(rpg);
 const voice = new ElevenLabs({
