@@ -82,7 +82,7 @@ app.get('/produk', async (req, res) => {
     url: targetUrl,
     _rsc: '1iwkq',
     device: 'phone',
-    dimension: '480x440',
+    dimension: '720x1280',
     format: 'jpg',
     cacheLimit: '14',
     delay: '1000',
