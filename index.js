@@ -80,7 +80,7 @@ app.get('/arti', async (req, res) => {
     url: targetUrl,
     _rsc: '1iwkq',
     device: 'phone',
-    dimension: '480x500',
+    dimension: '480x580',
     format: 'jpg',
     cacheLimit: '14',
     delay: '1000',
