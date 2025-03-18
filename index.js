@@ -82,7 +82,7 @@ app.get('/produk', async (req, res) => {
     url: targetUrl,
     _rsc: '1iwkq',
     device: 'phone',
-    dimension: '480x854',
+    dimension: '720x1280',
     format: 'jpg',
     cacheLimit: '14',
     delay: '1000',
@@ -110,6 +110,7 @@ app.get('/produk-mentah', (req, res) => {
   const responseHTML = `
     <html>  
      <head>  
+     <meta name="viewport" content="width=device-width, initial-scale=1">
       <script src="https://cdn.tailwindcss.com">  
       </script>  
       <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>  
