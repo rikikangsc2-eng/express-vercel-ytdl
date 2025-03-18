@@ -65,14 +65,16 @@ app.get('/khodam-mentah', async (req, res) => {
     }
 });
 
-app.get('/arti', async (req, res) => {
-  const { nama } = req.query;
+
+
+app.get('/produk', async (req, res) => {
+  const { nama, harga, gambar } = req.query;
   if (!nama) {
     return res.status(400).send('Parameter nama diperlukan');
   }
 
   // URL target untuk API Khodam dengan parameter nama yang di-encode
-  const targetUrl = `https://express-vercel-ytdl.vercel.app/artinama?nama=${encodeURIComponent(nama)}`;
+  const targetUrl = `https://express-vercel-ytdl.vercel.app/produk-mentah?nama=${encodeURIComponent(nama)}&harga=${encodeURIComponent(harga)}&gambar=${encodeURIComponent(gambar)}`;
 
   // Membangun query string untuk API screenshotmachine
   const params = new URLSearchParams({
@@ -102,7 +104,7 @@ app.get('/arti', async (req, res) => {
   }
 });
 
-app.get('/produk', (req, res) => {
+app.get('/produk-mentah', (req, res) => {
   const { nama, harga, gambar } = req.query;
   
   const responseHTML = `
