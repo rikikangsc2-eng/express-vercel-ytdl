@@ -82,11 +82,11 @@ app.get('/produk', async (req, res) => {
     url: targetUrl,
     _rsc: '1iwkq',
     device: 'phone',
-    dimension: '720x1280',
+    dimension: '480x440',
     format: 'jpg',
     cacheLimit: '14',
     delay: '1000',
-    zoom: '200'
+    zoom: '400'
   });
 
   const imageUrl = `https://api.screenshotmachine.com/?${params.toString()}`;
