@@ -106,48 +106,38 @@ app.get('/produk', async (req, res) => {
 
 app.get('/produk-mentah', (req, res) => {
   const { nama, harga, gambar } = req.query;
-  
+
   const responseHTML = `
-    <html>  
-     <head>  
-     <meta name="viewport" content="width=device-width, initial-scale=1">
-      <script src="https://cdn.tailwindcss.com">  
-      </script>  
-      <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>  
-     </head>  
-     <body class="flex items-center justify-center min-h-screen bg-gray-100">  
-      <div class="max-w-xs bg-white rounded-lg shadow-md overflow-hidden">  
-       <div class="relative">  
-        <img alt="${nama}" class="w-full" height="800" src="${gambar}" width="600"/>  
-        <div class="absolute bottom-0 left-0 right-0 flex justify-center mb-2">  
-         <div class="flex space-x-1">  
-          <span class="w-2.5 h-2.5 bg-white rounded-full">  
-          </span>  
-          <span class="w-2.5 h-2.5 bg-gray-400 rounded-full">  
-          </span>  
-          <span class="w-2.5 h-2.5 bg-gray-400 rounded-full">  
-          </span>  
-         </div>  
-        </div>  
-       </div>  
-       <div class="p-4">  
-        <h2 class="text-lg font-semibold text-gray-900">  
-         ${nama}  
-        </h2>  
-        <p class="text-xl font-bold text-gray-900 mt-2">  
-         ${harga}  
-        </p>  
-        <div class="flex items-center mt-4">  
-         <img alt="Nirkyy logo" class="w-6 h-6" height="24" src="https://storage.googleapis.com/a1aa/image/n6JFeAHVacY7Z5iDO8klmreKUIulLgMvJBslkzj-efo.jpg" width="24"/>  
-         <span class="ml-2 text-gray-600">  
-          Nirkyy Indonesia  
-         </span>  
-        </div>  
-       </div>  
-      </div>  
-     </body>  
+    <html>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+      </head>
+      <body class="flex items-center justify-center min-h-screen bg-cover bg-center" style="background-image: url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRHOa2O89MTT-hyGSpiilY68k-jsOb_sAEhXmQKqcdvmOSGvANLRW7JrQ&s=10');">
+        <div class="max-w-xs bg-white rounded-lg shadow-md overflow-hidden">
+          <div class="relative">
+            <img alt="${nama}" class="w-full" height="800" src="${gambar}" width="600"/>
+            <div class="absolute bottom-0 left-0 right-0 flex justify-center mb-2">
+              <div class="flex space-x-1">
+                <span class="w-2.5 h-2.5 bg-white rounded-full"></span>
+                <span class="w-2.5 h-2.5 bg-gray-400 rounded-full"></span>
+                <span class="w-2.5 h-2.5 bg-gray-400 rounded-full"></span>
+              </div>
+            </div>
+          </div>
+          <div class="p-4">
+            <h2 class="text-lg font-semibold text-gray-900">${nama}</h2>
+            <p class="text-xl font-bold text-gray-900 mt-2">${harga}</p>
+            <div class="flex items-center mt-4">
+              <img alt="Nirkyy logo" class="w-6 h-6" height="24" src="https://storage.googleapis.com/a1aa/image/n6JFeAHVacY7Z5iDO8klmreKUIulLgMvJBslkzj-efo.jpg" width="24"/>
+              <span class="ml-2 text-gray-600">Nirkyy Indonesia</span>
+            </div>
+          </div>
+        </div>
+      </body>
     </html>`;
-  
+
   res.send(responseHTML);
 });
 
