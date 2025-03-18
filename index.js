@@ -65,7 +65,42 @@ app.get('/khodam-mentah', async (req, res) => {
     }
 });
 
+app.get('/arti', async (req, res) => {
+  const { nama } = req.query;
+  if (!nama) {
+    return res.status(400).send('Parameter nama diperlukan');
+  }
 
+  // URL target untuk API Khodam dengan parameter nama yang di-encode
+  const targetUrl = `https://express-vercel-ytdl.vercel.app/artinama?nama=${encodeURIComponent(nama)}`;
+
+  // Membangun query string untuk API screenshotmachine
+  const params = new URLSearchParams({
+    key: sskey,
+    url: targetUrl,
+    _rsc: '1iwkq',
+    device: 'phone',
+    dimension: '480x440',
+    format: 'jpg',
+    cacheLimit: '14',
+    delay: '1000',
+    zoom: '200'
+  });
+
+  const imageUrl = `https://api.screenshotmachine.com/?${params.toString()}`;
+
+  try {
+    const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+    res.writeHead(200, {
+      'Content-Type': 'image/jpeg',
+      'Content-Length': response.data.length
+    });
+    res.end(response.data);
+  } catch (error) {
+    console.error("Gagal mengambil gambar:", error);
+    res.status(500).send('Gagal mengambil gambar dari API screenshot.');
+  }
+});
 
 app.get('/produk', async (req, res) => {
   const { nama, harga, gambar } = req.query;
