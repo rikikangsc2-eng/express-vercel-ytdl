@@ -170,8 +170,6 @@ app.get('/top', async (req, res) => {
   }
 });
 
-const axios = require('axios');
-
 app.get('/topuser', async (req, res) => {
   try {
     const response = await axios.get('https://copper-ambiguous-velvet.glitch.me/data/users', {
