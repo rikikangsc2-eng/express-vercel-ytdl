@@ -14,6 +14,41 @@ const voice = new ElevenLabs({
   voiceId: "kuOK5r8Woz6lkWaMr8kx"
 });
 
+app.get('/brat', async (req, res) => {
+  try {
+    const {
+      text = "Brat",
+      fontSize = "100",
+      blur = "5"
+    } = req.query;
+    const data = new URLSearchParams({
+      action: "generate_brat_text",
+      text: text,
+      fontSize: fontSize,
+      blurLevel: blur
+    });
+    const {
+      data: base64
+    } = await axios.post("https://www.bestcalculators.org/wp-admin/admin-ajax.php", data.toString(), {
+      headers: {
+        authority: "www.bestcalculators.org",
+        accept: "*/*",
+        "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+        origin: "https://www.bestcalculators.org",
+        referer: "https://www.bestcalculators.org/online-generators/brat-text-generator/",
+        "user-agent": "Postify/1.0.0",
+        "x-requested-with": "XMLHttpRequest"
+      }
+    });
+    const imageBuffer = Buffer.from(base64, "base64");
+    res.setHeader("Content-Type", "image/png");
+    res.end(imageBuffer);
+  } catch (error) {
+    console.error("Error generating image:", error);
+    res.status(500).send('Failed to generate image');
+  }
+});
+
 app.get('/khodam-mentah', async (req, res) => {
     try {
         const nama = req.query.nama || 'Pengguna';
