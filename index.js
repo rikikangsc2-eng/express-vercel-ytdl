@@ -7,12 +7,15 @@ const app = express();
 const listKey = ['5130b8', 'c87ac1', '21a5cf', '047eff', '09fd34'];
 const randomKey = () => listKey[Math.floor(Math.random() * listKey.length)];
 const sskey = randomKey();
+const blackbox = require('./blackbox.js')
 
 app.use(rpg);
 const voice = new ElevenLabs({
   apiKey: "sk_2496699c1ca47e57043385c08716c39700150d2a2bbc4938",
   voiceId: "kuOK5r8Woz6lkWaMr8kx"
 });
+
+app.get('/chat', blackbox)
 
 app.get('/khodam-mentah', async (req, res) => {
     try {
