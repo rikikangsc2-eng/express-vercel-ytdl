@@ -336,7 +336,7 @@ app.get('/topuser', async (req, res) => {
         'Accept': '*/*',
         'Origin': 'https://pictify.io',
         'Referer': 'https://pictify.io/',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.6943.141 Mobile Safari/537.36'
       }
     });
 
