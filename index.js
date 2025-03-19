@@ -14,7 +14,7 @@ const voice = new ElevenLabs({
   voiceId: "kuOK5r8Woz6lkWaMr8kx"
 });
 
-app.get('/brats', async (req, res) => {
+app.get('/brat', async (req, res) => {
   const {
     text,
     host
@@ -26,17 +26,32 @@ app.get('/brats', async (req, res) => {
     });
   }
 
+  const BASE_URLS = {
+    1: "https://brat.caliphdev.com/api/brat?text=",
+    2: "https://wudysoft-api.hf.space/brat?text=",
+    3: "https://aqul-brat.hf.space/?text=",
+    4: "https://siputzx-bart.hf.space/?q=",
+    5: "https://wudysoft-api.hf.space/brat/v2?text=",
+    6: "https://qyuunee-brat.hf.space/?q=",
+    7: "https://fgsi-brat.hf.space/?text="
+  };
+  const totalHosts = Object.keys(BASE_URLS).length;
   const hostInt = host ? parseInt(host) : 1;
-  const downloader = new BratService(hostInt);
 
-  if (hostInt < 1 || hostInt > downloader.totalHosts) {
+  if (hostInt < 1 || hostInt > totalHosts) {
     return res.status(400).json({
-      error: `Host must be between 1 and ${downloader.totalHosts}.`
+      error: `Host must be between 1 and ${totalHosts}.`
     });
   }
 
+  const BASE_URL = BASE_URLS[hostInt];
+  const url = `${BASE_URL}${encodeURIComponent(text)}`;
+
   try {
-    const imageBuffer = await downloader.fetchImage(text);
+    const response = await axios.get(url, {
+      responseType: "arraybuffer"
+    });
+    const imageBuffer = Buffer.from(response.data);
     console.log("Query processing complete!");
     res.setHeader("Content-Type", "image/png");
     return res.status(200).send(imageBuffer);
@@ -47,6 +62,7 @@ app.get('/brats', async (req, res) => {
     });
   }
 });
+
 
 app.get('/khodam-mentah', async (req, res) => {
     try {
