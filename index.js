@@ -161,7 +161,10 @@ app.get('/tulis', async (req, res) => {
 
 app.get('/top', async (req, res) => {
   try {
-    const response = await axios.get(`https://api.screenshotmachine.com?key=${sskey}&url=https%3A%2F%2Fexpress-vercel-ytdl.vercel.app%2Ftopuser&device=phone&dimension=480x300&format=jpg&cacheLimit=1&delay=1`, {responseType: 'arraybuffer'});
+    const response = await axios.get(
+      `https://api.screenshotmachine.com?key=${sskey}&url=https%3A%2F%2Fyourdomain.com%2Ftopuser&device=phone&dimension=480x300&format=jpg&cacheLimit=1&delay=1`,
+      { responseType: 'arraybuffer' }
+    );
     const data = response.data;
     res.setHeader('Content-Type', 'image/jpeg');
     res.send(Buffer.from(data, 'base64'));
@@ -181,131 +184,171 @@ app.get('/topuser', async (req, res) => {
 
     const usersObj = data.users;
     let usersArray = Object.keys(usersObj).map(username => ({
-      username: username,
+      username,
       name: usersObj[username].name || username,
       points: usersObj[username].points || 0
     }));
 
+    // Urutkan berdasarkan points tertinggi dan ambil 5 besar
     usersArray.sort((a, b) => b.points - a.points);
-    usersArray = usersArray.slice(0, 3);
+    usersArray = usersArray.slice(0, 5);
 
-    res.send(`
-<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Top Users</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    let rowsHtml = '';
+    usersArray.forEach((user, index) => {
+      // Ubah nama menjadi huruf kapital agar sesuai dengan contoh
+      const displayName = user.name.toUpperCase();
+      if (index === 0) {
+        rowsHtml += `
+    <div class="mb-4 p-4 rounded-md shadow-sm flex justify-between items-center bg-yellow-100">
+      <div class="flex items-center">
+        <div class="text-4xl font-bold text-yellow-500 mr-4">
+          <i class="fas fa-crown"></i>
+        </div>
+        <div class="text-2xl font-bold rank-1-name">
+          ${displayName}
+        </div>
+      </div>
+      <div class="text-4xl font-bold text-gray-800">
+        ${user.points}
+      </div>
+    </div>`;
+      } else if (index === 1) {
+        rowsHtml += `
+    <div class="mb-4 p-4 rounded-md shadow-sm flex justify-between items-center bg-red-100">
+      <div class="flex items-center">
+        <div class="text-3xl font-bold text-red-500 mr-4">
+          <i class="fas fa-medal"></i>
+        </div>
+        <div class="text-2xl font-bold rank-2-name">
+          ${displayName}
+        </div>
+      </div>
+      <div class="text-4xl font-bold text-gray-800">
+        ${user.points}
+      </div>
+    </div>`;
+      } else if (index === 2) {
+        rowsHtml += `
+    <div class="mb-4 p-4 rounded-md shadow-sm flex justify-between items-center bg-blue-100">
+      <div class="flex items-center">
+        <div class="text-2xl font-bold text-blue-500 mr-4">
+          <i class="fas fa-trophy"></i>
+        </div>
+        <div class="text-2xl font-bold rank-3-name">
+          ${displayName}
+        </div>
+      </div>
+      <div class="text-4xl font-bold text-gray-800">
+        ${user.points}
+      </div>
+    </div>`;
+      } else if (index === 3) {
+        rowsHtml += `
+    <div class="mb-4 p-4 rounded-md shadow-sm flex justify-between items-center bg-gray-100">
+      <div class="flex items-center">
+        <div class="text-xl font-bold text-gray-400 mr-4">
+          ${index + 1}
+        </div>
+        <div class="text-2xl font-bold rank-4-name">
+          ${displayName}
+        </div>
+      </div>
+      <div class="text-4xl font-bold text-gray-800">
+        ${user.points}
+      </div>
+    </div>`;
+      } else if (index === 4) {
+        rowsHtml += `
+    <div class="p-4 rounded-md shadow-sm flex justify-between items-center bg-gray-100">
+      <div class="flex items-center">
+        <div class="text-lg font-bold text-gray-600 mr-4">
+          ${index + 1}
+        </div>
+        <div class="text-2xl font-bold rank-5-name">
+          ${displayName}
+        </div>
+      </div>
+      <div class="text-4xl font-bold text-gray-800">
+        ${user.points}
+      </div>
+    </div>`;
+      }
+    });
+
+    res.send(`<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>Leaderboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
   <style>
-    body { 
-      background: url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRc8WX4UeBThhIm1D6dqiiXXv2IYtrNzdcOvtAY_bLqD9vldLRap-pcpcQ&s=10') no-repeat center center fixed; 
-      background-size: cover;
-      font-family: 'Poppins', sans-serif;
-      color: #fff;
-      text-align: center;
+    /* Style untuk nama peringkat 1 (3D Berapi-api) */
+    .rank-1-name {
+      text-shadow: 2px 2px 4px rgba(255, 165, 0, 0.8), -2px -2px 4px rgba(255, 69, 0, 0.8);
+      animation: fire-effect 0.5s infinite alternate;
     }
-    .container {
-      background: rgba(0, 0, 0, 0.8);
-      border-radius: 15px;
-      padding: 20px;
-      max-width: 400px;
-      margin: auto;
-      box-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+    @keyframes fire-effect {
+      from { color: #ff8c00; }
+      to { color: #ff4500; }
     }
-    h1 {
-      color: #0f0;
-      font-size: 28px;
-      text-shadow: 0 0 8px #0f0;
-      margin-bottom: 20px;
+    /* Style untuk nama peringkat 2 (3D) */
+    .rank-2-name {
+      text-shadow: 1px 1px 2px #000;
     }
-    .table {
-      margin-top: 10px;
-      border-radius: 10px;
-      overflow: hidden;
+    /* Style untuk nama peringkat 3 (3D) */
+    .rank-3-name {
+      text-shadow: 1px 1px 2px #000;
     }
-    .table th {
-      background-color: #111;
-      color: #0f0;
+    /* Style untuk nama peringkat 4 */
+    .rank-4-name {
+      color: #555;
     }
-    .table tr {
-      transition: 0.3s;
-    }
-    .table tr:hover {
-      background-color: rgba(0, 255, 0, 0.3);
-      transform: scale(1.05);
-    }
-    .rank-icon {
-      font-size: 20px;
+    /* Style untuk nama peringkat 5 (3D Kotor) */
+    .rank-5-name {
+      color: #777;
+      text-decoration: line-through wavy #333;
     }
   </style>
-</head>
-<body>
-  <div class="container">
-    <h1>🏆 3 SEPUH 🥶 🏆</h1>
-    <table class="table table-dark table-hover">
-      <thead>
-        <tr><th>Rank</th><th>Username</th><th>Points</th></tr>
-      </thead>
-      <tbody>
-        ${usersArray.length === 0 ? '<tr><td colspan="3">Tidak ada data</td></tr>' : 
-          usersArray.map((user, index) => `
-            <tr>
-              <td><span class="rank-icon">${index + 1}${index === 0 ? ' 👑' : index === 1 ? ' 🔥' : ' 😎'}</span></td>
-              <td>${user.name}</td>
-              <td>${user.points}</td>
-            </tr>`).join('')
-        }
-      </tbody>
-    </table>
+ </head>
+ <body class="bg-gray-200">
+  <div class="max-w-md mx-auto mt-10 rounded-lg shadow-xl overflow-hidden">
+    <div class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-6 flex items-center justify-center">
+      <img alt="Logo" class="w-14 h-14 mr-4 rounded-full shadow-md" src="https://NirKyy.koyeb.app/example.jpg"/>
+      <h1 class="text-2xl font-bold text-center">
+        <span class="block">Top Point Tertinggi</span>
+        <span class="block">Alicia Games</span>
+      </h1>
+    </div>
+    <div class="bg-white p-6">
+      ${rowsHtml}
+    </div>
   </div>
-</body>
-</html>
-    `);
+ </body>
+</html>`);
   } catch (error) {
-    res.send(`
-<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Top Users</title>
+    res.send(`<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>Leaderboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { 
-      background: url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRc8WX4UeBThhIm1D6dqiiXXv2IYtrNzdcOvtAY_bLqD9vldLRap-pcpcQ&s=10') no-repeat center center fixed; 
-      background-size: cover;
-      font-family: 'Poppins', sans-serif;
-      color: #fff;
-      text-align: center;
-    }
-    .error-container {
-      background: rgba(0, 0, 0, 0.8);
-      border-radius: 15px;
-      padding: 20px;
-      max-width: 400px;
-      margin: auto;
-      box-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
-    }
-    h1 {
-      color: #f00;
-      font-size: 28px;
-      text-shadow: 0 0 8px #f00;
-    }
-    p {
-      font-size: 18px;
-      font-weight: bold;
-      color: #ff4d4d;
-    }
+    body { background: #f8d7da; font-family: sans-serif; }
+    .error-container { background: #f5c6cb; padding: 20px; border-radius: 8px; margin: 20px auto; max-width: 400px; text-align: center; }
+    h1 { color: #721c24; font-size: 24px; }
+    p { color: #721c24; }
   </style>
-</head>
-<body>
+ </head>
+ <body>
   <div class="error-container">
     <h1>❌ ERROR ❌</h1>
     <p>Gagal memuat data top users.</p>
   </div>
-</body>
-</html>
-    `);
+ </body>
+</html>`);
   }
 });
 
