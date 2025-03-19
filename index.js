@@ -170,29 +170,18 @@ app.get('/top', async (req, res) => {
   }
 });
 
+
 app.get('/topuser', async (req, res) => {
   try {
-    const response = await axios.get('https://copper-ambiguous-velvet.glitch.me/data/users', {
-      headers: { 'User-Agent': 'TopUsersApp/1.0' }
-    });
+    const response = await axios.get('https://copper-ambiguous-velvet.glitch.me/data/users', { headers: { 'User-Agent': 'TopUsersApp/1.0' } });
     const data = response.data;
-
     if (!data || !data.users) throw new Error('Data tidak ditemukan');
-
     const usersObj = data.users;
-    let usersArray = Object.keys(usersObj).map(username => ({
-      username,
-      name: usersObj[username].name || username,
-      points: usersObj[username].points || 0
-    }));
-
-    // Urutkan berdasarkan points tertinggi dan ambil 5 besar
+    let usersArray = Object.keys(usersObj).map(username => ({ username, name: usersObj[username].name || username, points: usersObj[username].points || 0 }));
     usersArray.sort((a, b) => b.points - a.points);
     usersArray = usersArray.slice(0, 5);
-
     let rowsHtml = '';
     usersArray.forEach((user, index) => {
-      // Ubah nama menjadi huruf kapital agar sesuai dengan contoh
       const displayName = user.name.toUpperCase();
       if (index === 0) {
         rowsHtml += `
@@ -271,8 +260,7 @@ app.get('/topuser', async (req, res) => {
     </div>`;
       }
     });
-
-    const htmlContent = `<!DOCTYPE html>
+    const html = `<!DOCTYPE html>
 <html lang="en">
  <head>
   <meta charset="utf-8"/>
@@ -281,32 +269,12 @@ app.get('/topuser', async (req, res) => {
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
   <style>
-    /* Style untuk nama peringkat 1 (3D Berapi-api) */
-    .rank-1-name {
-      text-shadow: 2px 2px 4px rgba(255, 165, 0, 0.8), -2px -2px 4px rgba(255, 69, 0, 0.8);
-      animation: fire-effect 0.5s infinite alternate;
-    }
-    @keyframes fire-effect {
-      from { color: #ff8c00; }
-      to { color: #ff4500; }
-    }
-    /* Style untuk nama peringkat 2 (3D) */
-    .rank-2-name {
-      text-shadow: 1px 1px 2px #000;
-    }
-    /* Style untuk nama peringkat 3 (3D) */
-    .rank-3-name {
-      text-shadow: 1px 1px 2px #000;
-    }
-    /* Style untuk nama peringkat 4 */
-    .rank-4-name {
-      color: #555;
-    }
-    /* Style untuk nama peringkat 5 (3D Kotor) */
-    .rank-5-name {
-      color: #777;
-      text-decoration: line-through wavy #333;
-    }
+    .rank-1-name { text-shadow: 2px 2px 4px rgba(255, 165, 0, 0.8), -2px -2px 4px rgba(255, 69, 0, 0.8); animation: fire-effect 0.5s infinite alternate; }
+    @keyframes fire-effect { from { color: #ff8c00; } to { color: #ff4500; } }
+    .rank-2-name { text-shadow: 1px 1px 2px #000; }
+    .rank-3-name { text-shadow: 1px 1px 2px #000; }
+    .rank-4-name { color: #555; }
+    .rank-5-name { color: #777; text-decoration: line-through wavy #333; }
   </style>
  </head>
  <body class="bg-gray-200">
@@ -324,28 +292,30 @@ app.get('/topuser', async (req, res) => {
   </div>
  </body>
 </html>`;
-
-    const imageResponse = await axios.post('https://api.pictify.io/image/public', {
-      html: htmlContent,
-      width: 486,
-      height: 400,
-      fileExtension: "png"
-    }, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': '*/*',
-        'Origin': 'https://pictify.io',
-        'Referer': 'https://pictify.io/',
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.6943.141 Mobile Safari/537.36'
-      }
-    });
-
-    res.setHeader('Content-Type', 'image/png');
-    res.send(Buffer.from(imageResponse.data.base64, 'base64'));
-
+    const imageResponse = await generateImage(html);
+    res.send(imageResponse);
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).send('Failed to generate leaderboard image.');
+    res.send(`<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>Leaderboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background: #f8d7da; font-family: sans-serif; }
+    .error-container { background: #f5c6cb; padding: 20px; border-radius: 8px; margin: 20px auto; max-width: 400px; text-align: center; }
+    h1 { color: #721c24; font-size: 24px; }
+    p { color: #721c24; }
+  </style>
+ </head>
+ <body>
+  <div class="error-container">
+    <h1>❌ ERROR ❌</h1>
+    <p>Gagal memuat data top users.</p>
+  </div>
+ </body>
+</html>`);
   }
 });
 
