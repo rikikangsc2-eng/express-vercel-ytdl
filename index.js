@@ -170,18 +170,29 @@ app.get('/top', async (req, res) => {
   }
 });
 
-
 app.get('/topuser', async (req, res) => {
   try {
-    const response = await axios.get('https://copper-ambiguous-velvet.glitch.me/data/users', { headers: { 'User-Agent': 'TopUsersApp/1.0' } });
+    const response = await axios.get('https://copper-ambiguous-velvet.glitch.me/data/users', {
+      headers: { 'User-Agent': 'TopUsersApp/1.0' }
+    });
     const data = response.data;
+
     if (!data || !data.users) throw new Error('Data tidak ditemukan');
+
     const usersObj = data.users;
-    let usersArray = Object.keys(usersObj).map(username => ({ username, name: usersObj[username].name || username, points: usersObj[username].points || 0 }));
+    let usersArray = Object.keys(usersObj).map(username => ({
+      username,
+      name: usersObj[username].name || username,
+      points: usersObj[username].points || 0
+    }));
+
+    // Urutkan berdasarkan points tertinggi dan ambil 5 besar
     usersArray.sort((a, b) => b.points - a.points);
     usersArray = usersArray.slice(0, 5);
+
     let rowsHtml = '';
     usersArray.forEach((user, index) => {
+      // Ubah nama menjadi huruf kapital agar sesuai dengan contoh
       const displayName = user.name.toUpperCase();
       if (index === 0) {
         rowsHtml += `
@@ -260,7 +271,8 @@ app.get('/topuser', async (req, res) => {
     </div>`;
       }
     });
-    const html = `<!DOCTYPE html>
+
+    res.send(`<!DOCTYPE html>
 <html lang="en">
  <head>
   <meta charset="utf-8"/>
@@ -269,12 +281,32 @@ app.get('/topuser', async (req, res) => {
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
   <style>
-    .rank-1-name { text-shadow: 2px 2px 4px rgba(255, 165, 0, 0.8), -2px -2px 4px rgba(255, 69, 0, 0.8); animation: fire-effect 0.5s infinite alternate; }
-    @keyframes fire-effect { from { color: #ff8c00; } to { color: #ff4500; } }
-    .rank-2-name { text-shadow: 1px 1px 2px #000; }
-    .rank-3-name { text-shadow: 1px 1px 2px #000; }
-    .rank-4-name { color: #555; }
-    .rank-5-name { color: #777; text-decoration: line-through wavy #333; }
+    /* Style untuk nama peringkat 1 (3D Berapi-api) */
+    .rank-1-name {
+      text-shadow: 2px 2px 4px rgba(255, 165, 0, 0.8), -2px -2px 4px rgba(255, 69, 0, 0.8);
+      animation: fire-effect 0.5s infinite alternate;
+    }
+    @keyframes fire-effect {
+      from { color: #ff8c00; }
+      to { color: #ff4500; }
+    }
+    /* Style untuk nama peringkat 2 (3D) */
+    .rank-2-name {
+      text-shadow: 1px 1px 2px #000;
+    }
+    /* Style untuk nama peringkat 3 (3D) */
+    .rank-3-name {
+      text-shadow: 1px 1px 2px #000;
+    }
+    /* Style untuk nama peringkat 4 */
+    .rank-4-name {
+      color: #555;
+    }
+    /* Style untuk nama peringkat 5 (3D Kotor) */
+    .rank-5-name {
+      color: #777;
+      text-decoration: line-through wavy #333;
+    }
   </style>
  </head>
  <body class="bg-gray-200">
@@ -291,9 +323,7 @@ app.get('/topuser', async (req, res) => {
     </div>
   </div>
  </body>
-</html>`;
-    const imageResponse = await generateImage(html);
-    res.send(imageResponse);
+</html>`);
   } catch (error) {
     res.send(`<!DOCTYPE html>
 <html lang="en">
@@ -318,7 +348,6 @@ app.get('/topuser', async (req, res) => {
 </html>`);
   }
 });
-
 
 app.get('/tts', async (req, res) => {
   const text = req.query.text || "mozzy is cool";
