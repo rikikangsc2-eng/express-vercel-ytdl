@@ -14,38 +14,37 @@ const voice = new ElevenLabs({
   voiceId: "kuOK5r8Woz6lkWaMr8kx"
 });
 
-app.get('/brats', async (req, res) => {
+app.get('/brat', async (req, res) => {
+  const {
+    text,
+    host
+  } = req.query;
+
+  if (!text) {
+    return res.status(400).json({
+      error: "Text parameter is required"
+    });
+  }
+
+  const hostInt = host ? parseInt(host) : 1;
+  const downloader = new BratService(hostInt);
+
+  if (hostInt < 1 || hostInt > downloader.totalHosts) {
+    return res.status(400).json({
+      error: `Host must be between 1 and ${downloader.totalHosts}.`
+    });
+  }
+
   try {
-    const {
-      text = "Brat",
-      fontSize = "100",
-      blur = "5"
-    } = req.query;
-    const data = new URLSearchParams({
-      action: "generate_brat_text",
-      text: text,
-      fontSize: fontSize,
-      blurLevel: blur
-    });
-    const {
-      data: base64
-    } = await axios.post("https://www.bestcalculators.org/wp-admin/admin-ajax.php", data.toString(), {
-      headers: {
-        authority: "www.bestcalculators.org",
-        accept: "*/*",
-        "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-        origin: "https://www.bestcalculators.org",
-        referer: "https://www.bestcalculators.org/online-generators/brat-text-generator/",
-        "user-agent": "Postify/1.0.0",
-        "x-requested-with": "XMLHttpRequest"
-      }
-    });
-    const imageBuffer = Buffer.from(base64, "base64");
+    const imageBuffer = await downloader.fetchImage(text);
+    console.log("Query processing complete!");
     res.setHeader("Content-Type", "image/png");
-    res.end(imageBuffer);
+    return res.status(200).send(imageBuffer);
   } catch (error) {
-    console.error("Error generating image:", error);
-    res.status(500).send('Failed to generate image');
+    console.error("Error processing query:", error);
+    return res.status(500).json({
+      error: "Failed to process the request"
+    });
   }
 });
 
