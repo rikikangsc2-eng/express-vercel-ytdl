@@ -161,7 +161,7 @@ app.get('/tulis', async (req, res) => {
 
 app.get('/top', async (req, res) => {
   try {
-    const response = await axios.get(`https://api.screenshotmachine.com?key=${sskey}&url=https%3A%2F%2Fexpress-vercel-ytdl.vercel.app%2Ftopuser&device=phone&dimension=480x500&format=jpg&cacheLimit=1&delay=1`, {responseType: 'arraybuffer'});
+    const response = await axios.get(`https://api.screenshotmachine.com?key=${sskey}&url=https%3A%2F%2Fexpress-vercel-ytdl.vercel.app%2Ftopuser&device=phone&dimension=480x700&format=jpg&cacheLimit=1&delay=1`, {responseType: 'arraybuffer'});
     const data = response.data;
     res.setHeader('Content-Type', 'image/jpeg');
     res.send(Buffer.from(data, 'base64'));
