@@ -170,6 +170,8 @@ app.get('/top', async (req, res) => {
   }
 });
 
+const axios = require('axios');
+
 app.get('/topuser', async (req, res) => {
   try {
     const response = await axios.get('https://copper-ambiguous-velvet.glitch.me/data/users', {
@@ -272,7 +274,7 @@ app.get('/topuser', async (req, res) => {
       }
     });
 
-    res.send(`<!DOCTYPE html>
+    const htmlContent = `<!DOCTYPE html>
 <html lang="en">
  <head>
   <meta charset="utf-8"/>
@@ -323,31 +325,32 @@ app.get('/topuser', async (req, res) => {
     </div>
   </div>
  </body>
-</html>`);
+</html>`;
+
+    const imageResponse = await axios.post('https://api.pictify.io/image/public', {
+      html: htmlContent,
+      width: 486,
+      height: 400,
+      fileExtension: "png"
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': '*/*',
+        'Origin': 'https://pictify.io',
+        'Referer': 'https://pictify.io/',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36'
+      }
+    });
+
+    res.setHeader('Content-Type', 'image/png');
+    res.send(Buffer.from(imageResponse.data.base64, 'base64'));
+
   } catch (error) {
-    res.send(`<!DOCTYPE html>
-<html lang="en">
- <head>
-  <meta charset="utf-8"/>
-  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-  <title>Leaderboard</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    body { background: #f8d7da; font-family: sans-serif; }
-    .error-container { background: #f5c6cb; padding: 20px; border-radius: 8px; margin: 20px auto; max-width: 400px; text-align: center; }
-    h1 { color: #721c24; font-size: 24px; }
-    p { color: #721c24; }
-  </style>
- </head>
- <body>
-  <div class="error-container">
-    <h1>❌ ERROR ❌</h1>
-    <p>Gagal memuat data top users.</p>
-  </div>
- </body>
-</html>`);
+    console.error('Error:', error);
+    res.status(500).send('Failed to generate leaderboard image.');
   }
 });
+
 
 app.get('/tts', async (req, res) => {
   const text = req.query.text || "mozzy is cool";
