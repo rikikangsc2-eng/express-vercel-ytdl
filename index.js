@@ -21,8 +21,9 @@ app.get('/soundoftext', async (req, res) => {
   }
 
   try {
-    const response = await fetch('https://api.soundoftext.com/sounds', {
-      method: 'POST',
+    const response = await axios({
+      method: 'post',
+      url: 'https://api.soundoftext.com/sounds',
       headers: {
         'Content-Type': 'application/json',
         'Accept': '*/*',
@@ -38,26 +39,23 @@ app.get('/soundoftext', async (req, res) => {
         'Sec-Fetch-Site': 'same-site',
         'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Mobile Safari/537.36',
       },
-      body: JSON.stringify({
+      data: {
         engine: 'Google',
         data: {
           text: text,
           voice: 'id-ID',
         },
-      }),
+      },
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('SoundOfText API error:', response.status, errorText);
-      return res.status(response.status).send(`Error from SoundOfText API: ${response.status} - ${errorText}`);
-    }
-
-    const data = await response.json();
-    res.json(data);
+    res.json(response.data);
   } catch (error) {
-    console.error('Error processing request:', error);
-    res.status(500).send('Internal Server Error');
+    console.error('Error calling Sound of Text API:', error);
+    if (error.response) {
+      res.status(error.response.status).send(error.response.data);
+    } else {
+      res.status(500).send('Internal Server Error');
+    }
   }
 });
 
