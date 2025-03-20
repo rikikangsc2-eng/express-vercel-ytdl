@@ -14,6 +14,52 @@ const voice = new ElevenLabs({
   voiceId: "kuOK5r8Woz6lkWaMr8kx"
 });
 
+app.get('/soundoftext', async (req, res) => {
+  const text = req.query.text;
+  if (!text) {
+    return res.status(400).send('Parameter "text" is required.');
+  }
+
+  try {
+    const response = await fetch('https://api.soundoftext.com/sounds', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': '*/*',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Origin': 'https://soundoftext.com',
+        'Referer': 'https://soundoftext.com/',
+        'Sec-Ch-Ua': '"Not A(Brand";v="8", "Chromium";v="132"',
+        'Sec-Ch-Ua-Mobile': '?1',
+        'Sec-Ch-Ua-Platform': '"Android"',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-site',
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Mobile Safari/537.36',
+      },
+      body: JSON.stringify({
+        engine: 'Google',
+        data: {
+          text: text,
+          voice: 'id-ID',
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('SoundOfText API error:', response.status, errorText);
+      return res.status(response.status).send(`Error from SoundOfText API: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error('Error processing request:', error);
+    res.status(500).send('Internal Server Error');
+  }
+});
 
 
 app.get('/brats', async (req, res) => {
