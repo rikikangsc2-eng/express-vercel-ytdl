@@ -14,8 +14,7 @@ const voice = new ElevenLabs({
   voiceId: "kuOK5r8Woz6lkWaMr8kx"
 });
 
-const tesh = require("./tes.js")
-app.get("/imagine", tesh)
+
 
 app.get('/brats', async (req, res) => {
   const {
