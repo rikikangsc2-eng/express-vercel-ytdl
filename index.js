@@ -15,7 +15,7 @@ const voice = new ElevenLabs({
 });
 
 
-app.get('/tes',require('./tes.js'))
+
 app.get('/brats', async (req, res) => {
   const {
     text,
