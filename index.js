@@ -47,8 +47,8 @@ app.get('/soundoftext', async (req, res) => {
         },
       },
     });
-
-    res.json(response.data);
+    response.data.id = "https://files.soundoftext.com/"+response.data.id+".mp3"
+    res.json(response.data.id);
   } catch (error) {
     console.error('Error calling Sound of Text API:', error);
     if (error.response) {
