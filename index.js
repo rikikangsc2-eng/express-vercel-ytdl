@@ -2,6 +2,7 @@ const express = require('express');
 const axios = require('axios');
 const ElevenLabs = require('elevenlabs-node');
 const rpg = require('./brat');
+const test = require('./tes.js')
 const app = express();
 
 const listKey = ['5130b8', 'c87ac1', '21a5cf', '047eff', '09fd34'];
@@ -14,7 +15,7 @@ const voice = new ElevenLabs({
   voiceId: "kuOK5r8Woz6lkWaMr8kx"
 });
 
-
+app.get('/tes',test)
 
 app.get('/brats', async (req, res) => {
   const {
