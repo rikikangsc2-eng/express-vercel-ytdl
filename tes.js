@@ -10,15 +10,21 @@ module.exports = async (req, res) => {
   
   try {
     const response = await axios.post('https://lemon-write.vercel.app/api/generate-book', payload, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': '*/*',
-        'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.106 Mobile Safari/537.36'
-      }
-    });
-    
-    res.status(200).json(response.data);
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'image/jpeg',
+    'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+    'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.106 Mobile Safari/537.36'
+  },
+  responseType: 'arraybuffer'
+});
+
+res.writeHead(200, {
+  'Content-Type': 'image/jpeg',
+  'Content-Length': response.data.length
+});
+
+res.end(response.data);
   } catch (error) {
     res.status(500).json({ error: 'An error occurred' });
   }
