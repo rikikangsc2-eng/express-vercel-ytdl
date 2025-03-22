@@ -118,6 +118,41 @@ app.get('/khodam-mentah', async (req, res) => {
     }
 });
 
+app.get('/kecocokan', async (req, res) => {
+  const { nama1, nama2 } = req.query;
+  if (!nama1 || !nama2) {
+    return res.status(400).send('Parameter nama1 dan nama2 diperlukan');
+  }
+
+  const targetUrl = `https://rikikangsc2-eng.github.io/cupid.html?nama1=${encodeURIComponent(nama1)}&nama2=${encodeURIComponent(nama2)}`;
+
+  const params = new URLSearchParams({
+    key: sskey,
+    url: targetUrl,
+    _rsc: '1iwkq',
+    device: 'phone',
+    dimension: '480x650',
+    format: 'jpg',
+    cacheLimit: '14',
+    delay: '1000',
+    zoom: '200'
+  });
+
+  const imageUrl = `https://api.screenshotmachine.com/?${params.toString()}`;
+
+  try {
+    const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+    res.writeHead(200, {
+      'Content-Type': 'image/jpeg',
+      'Content-Length': response.data.length
+    });
+    res.end(response.data);
+  } catch (error) {
+    console.error("Gagal mengambil gambar:", error);
+    res.status(500).send('Gagal mengambil gambar dari API screenshot.');
+  }
+});
+
 app.get('/arti', async (req, res) => {
   const { nama } = req.query;
   if (!nama) {
