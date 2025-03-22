@@ -118,13 +118,121 @@ app.get('/khodam-mentah', async (req, res) => {
     }
 });
 
+app.get('/kcckn', (req, res) => {
+  const nama1 = req.query.nama1 || "Nama1";
+  const nama2 = req.query.nama2 || "Nama2";
+  const namesHTML = `Persentase kecocokan <span class="font-bold text-pink-400">${nama1}</span> & <span class="font-bold text-pink-400">${nama2}</span>`;
+  const randomValue = Math.floor(Math.random() * 100) + 1;
+  const percentText = randomValue + "%";
+  let bucket = Math.round(randomValue / 10) * 10;
+  if (bucket < 10) bucket = 10;
+  if (bucket > 100) bucket = 100;
+  const responses = {
+    10: [
+      "Hmm, ini kayaknya nggak cocok deh, coba deketin lagi.",
+      "Yah, sepertinya chemistry kalian kurang, tapi siapa tahu bisa berkembang.",
+      "Cuma 10%, mungkin bukan jodoh tapi masih bisa jadi teman.",
+      "Low key vibes-nya belum nyambung, santai aja dulu.",
+      "Duh, pas 10% nih. Mungkin kalian butuh waktu untuk ngeklik."
+    ],
+    20: [
+      "20%? Masih perlu effort biar makin klop.",
+      "Kurang greget, tapi bisa jadi awal yang lucu.",
+      "Sedikit lagi biar terasa chemistry yang nyata.",
+      "20% tuh, masih ada ruang buat improvement.",
+      "Belum menyala, tapi tetap ada potensi."
+    ],
+    30: [
+      "30% artinya ada secercah harapan, asal jangan dipaksain.",
+      "Lumayan, tapi belum cukup menyala.",
+      "Cukup receh, bisa jadi bahan candaan.",
+      "Ada potensi, asal diberi waktu.",
+      "Mulai terlihat, tapi masih jauh dari ideal."
+    ],
+    40: [
+      "40%? Lumayan lah, coba kenalan lebih dalam.",
+      "Mendekati, tapi belum klik total.",
+      "Bisa dibilang setengah-setengah, coba lagi!",
+      "Masih butuh pemanasan, tapi ada peluang.",
+      "Cukup menarik, asal jangan dipaksain."
+    ],
+    50: [
+      "50/50, namanya juga adil, bisa jadi menarik.",
+      "Seimbang, ada plus minusnya masing-masing.",
+      "Setengah jalan, bisa makin mantep kalo diberi kesempatan.",
+      "Lumayan, tapi perlu usaha lebih.",
+      "Bisa jadi, asal kalian mau mencoba."
+    ],
+    60: [
+      "60% artinya udah lumayan, coba deketin lebih santai.",
+      "Ada chemistry, tapi belum full on.",
+      "Menjanjikan, asal jangan dibuat ribet.",
+      "Udah mulai asik, keep it casual aja.",
+      "Lumayan banget, boleh dicoba."
+    ],
+    70: [
+      "70%? Wah, udah lumayan keren nih!",
+      "Mendekati jodoh, coba eksplor lebih dalam.",
+      "Asik, chemistry kalian keliatan!",
+      "Cocok, tapi santai aja dulu.",
+      "Udah deket, tinggal makin deket lagi."
+    ],
+    80: [
+      "80% tuh, udah hampir sempurna!",
+      "Keren, chemistry kalian terasa banget.",
+      "Udah jodoh deh, asal dijaga aja.",
+      "Cocok banget, vibes positif terus!",
+      "Udah klik, tinggal terusin aja."
+    ],
+    90: [
+      "90%? Mantap, kalian tuh kayak destinasi jodoh!",
+      "Hampir sempurna, vibes kalian luar biasa.",
+      "Cocok parah, tinggal polesan dikit aja.",
+      "Udah kayak soulmate, terusin aja!",
+      "Gokil, chemistry kalian hampir nggak terbantahkan."
+    ],
+    100: [
+      "100%! Wah, bener-bener serasi!",
+      "Jodoh banget, udah kayak kisah dongeng.",
+      "Sempurna, kalian tuh destiny yang nyata.",
+      "Udah jelas, chemistry kalian on fire!",
+      "Tak terbantahkan, kalian memang dibuat untuk bersama."
+    ]
+  };
+  const chosenResponse = responses[bucket][Math.floor(Math.random() * responses[bucket].length)];
+  res.send(`
+    <html>
+    <head>
+      <script src="https://cdn.tailwindcss.com"></script>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+      <style>
+        body { font-family: 'Inter', sans-serif; }
+      </style>
+    </head>
+    <body class="bg-gray-800 flex items-center justify-center min-h-screen">
+      <div id="card" class="bg-gray-700 p-8 rounded-lg shadow-lg text-center text-white max-w-md mx-auto">
+        <h1 class="text-2xl font-bold mb-2">Cupid Meter</h1>
+        <p id="names" class="text-lg mb-4">${namesHTML}</p>
+        <div class="flex items-center justify-center mb-4">
+          <i class="fas fa-heart text-pink-500 text-6xl"></i>
+          <span id="percent" class="text-6xl font-bold ml-4">${percentText}</span>
+        </div>
+        <p id="response" class="text-sm">${chosenResponse}</p>
+      </div>
+    </body>
+    </html>
+  `);
+});
+
+
 app.get('/kecocokan', async (req, res) => {
   const { nama1, nama2 } = req.query;
   if (!nama1 || !nama2) {
     return res.status(400).send('Parameter nama1 dan nama2 diperlukan');
   }
 
-  const targetUrl = `https://rikikangsc2-eng.github.io/cupid.html?nama1=${encodeURIComponent(nama1)}&nama2=${encodeURIComponent(nama2)}`;
+  const targetUrl = `https://express-vercel-ytdl.vercel.app/kcckn?nama1=${encodeURIComponent(nama1)}&nama2=${encodeURIComponent(nama2)}`;
 
   const params = new URLSearchParams({
     key: sskey,
