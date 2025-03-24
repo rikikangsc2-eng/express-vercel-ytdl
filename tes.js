@@ -1,20 +1,29 @@
 const axios = require("axios");
-const cheerio = require("cheerio");
+const { JSDOM } = require("jsdom");
 
 module.exports = async (req, res) => {
   try {
-    const { data } = await axios.get("https://ligakorupsi.biz.id/");
-    const $ = cheerio.load(data);
+    const { data } = await axios.get("https://ligakorupsi.biz.id/", {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
+      }
+    });
+    
+    const dom = new JSDOM(data);
+    const document = dom.window.document;
     const results = [];
     
-    $("#korupsi-table tr").each((_, el) => {
-      const rank = $(el).find("td:nth-child(1)").text().trim();
-      const company = $(el).find("td:nth-child(2)").text().trim();
-      const caseType = $(el).find("td:nth-child(3)").text().trim();
-      const amount = $(el).find("td:nth-child(4) .amount").text().trim();
-      const trend = $(el).find("td:nth-child(5) span").text().trim();
-      
-      results.push({ rank, company, caseType, amount, trend });
+    document.querySelectorAll("#korupsi-table tr").forEach(row => {
+      const columns = row.querySelectorAll("td");
+      if (columns.length >= 5) {
+        results.push({
+          rank: columns[0].textContent.trim(),
+          company: columns[1].textContent.trim(),
+          caseType: columns[2].textContent.trim(),
+          amount: columns[3].textContent.trim(),
+          trend: columns[4].textContent.trim(),
+        });
+      }
     });
     
     res.json(results);

@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/hatuanem199801/express-vercel#readme",
   "dependencies": {
+    "jsdom":"*",
     "cheerio":"*",
     "cloudscraper":"*",
     "axios-cookiejar-support":"*",
