@@ -2,23 +2,21 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 
 module.exports = async (req, res) => {
-  const channel = req.query.channel ? req.query.channel.toLowerCase().trim() : '';
-  if (!channel) {
-    return res.status(400).json({ error: 'Channel parameter is required' });
-  }
-
-  const url = `https://www.jadwaltv.net/channel/${channel}`;
   try {
-    const { data: html } = await axios.get(url);
-    const $ = cheerio.load(html);
-    const result = [];
-    $('tr.jklIv').each((i, el) => {
-      const time = $(el).find('td').first().text().trim();
-      const program = $(el).find('td').last().text().trim();
-      result.push({ time, program });
+    const { data } = await axios.get('https://www.detik.com/terpopuler');
+    const $ = cheerio.load(data);
+    let results = [];
+    
+    $('article.list-content__item').each((_, el) => {
+      const title = $(el).find('.media__title a').text().trim();
+      const url = $(el).find('.media__title a').attr('href');
+      const image = $(el).find('.media__image img').attr('src');
+      const source = $(el).find('.media__date').text().trim();
+      results.push({ title, url, image, source });
     });
-    res.json(result);
-  } catch (err) {
-    res.status(500).json({ error: err.toString() });
+    
+    res.json({ status: 'success', data: results });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
   }
 };
