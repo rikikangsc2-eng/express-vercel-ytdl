@@ -3,20 +3,25 @@ const cheerio = require('cheerio');
 
 module.exports = async (req, res) => {
   try {
-    const { data } = await axios.get('https://www.detik.com/terpopuler');
+    const { data } = await axios.get('https://www.jadwaltv.net/tangga-lagu-youtube-tangga-lagu-indonesia-terbaru');
     const $ = cheerio.load(data);
-    let results = [];
+    const songs = [];
     
-    $('article.list-content__item').each((_, el) => {
-      const title = $(el).find('.media__title a').text().trim();
-      const url = $(el).find('.media__title a').attr('href');
-      const image = $(el).find('.media__image img').attr('src');
-      const source = $(el).find('.media__date').text().trim();
-      results.push({ title, url, image, source });
+    $('tr').each((_, el) => {
+      const rank = $(el).find('td:nth-child(1)').text().trim();
+      const img = $(el).find('td:nth-child(2) img').attr('src');
+      const title = $(el).find('td:nth-child(3) strong').text().trim();
+      const artist = $(el).find('td:nth-child(3) span').text().trim();
+      const youtube = $(el).find('td:nth-child(4) a').attr('href');
+      const spotify = $(el).find('td:nth-child(5) a').attr('href');
+      
+      if (rank && title) {
+        songs.push({ rank, img, title, artist, youtube, spotify });
+      }
     });
     
-    res.json({ status: 'success', data: results });
+    res.json(songs);
   } catch (error) {
-    res.status(500).json({ status: 'error', message: error.message });
+    res.status(500).json({ error: 'Failed to fetch data' });
   }
 };
