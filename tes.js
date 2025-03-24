@@ -1,27 +1,24 @@
-const axios = require('axios');
-const cheerio = require('cheerio');
+const axios = require("axios");
+const cheerio = require("cheerio");
 
 module.exports = async (req, res) => {
   try {
-    const { data } = await axios.get('https://www.jadwaltv.net/tangga-lagu-youtube-tangga-lagu-indonesia-terbaru');
+    const { data } = await axios.get("https://ligakorupsi.biz.id/");
     const $ = cheerio.load(data);
-    const songs = [];
+    const results = [];
     
-    $('tr').each((_, el) => {
-      const rank = $(el).find('td:nth-child(1)').text().trim();
-      const img = $(el).find('td:nth-child(2) img').attr('data-src') || $(el).find('td:nth-child(2) img').attr('src');
-      const title = $(el).find('td:nth-child(3) strong').text().trim();
-      const artist = $(el).find('td:nth-child(3) span').text().trim();
-      const youtube = $(el).find('td:nth-child(4) a').attr('href');
-      const spotify = $(el).find('td:nth-child(5) a').attr('href');
+    $("#korupsi-table tr").each((_, el) => {
+      const rank = $(el).find("td:nth-child(1)").text().trim();
+      const company = $(el).find("td:nth-child(2)").text().trim();
+      const caseType = $(el).find("td:nth-child(3)").text().trim();
+      const amount = $(el).find("td:nth-child(4) .amount").text().trim();
+      const trend = $(el).find("td:nth-child(5) span").text().trim();
       
-      if (rank && title && img.startsWith('http')) {
-        songs.push({ rank, img, title, artist, youtube, spotify });
-      }
+      results.push({ rank, company, caseType, amount, trend });
     });
     
-    res.json(songs);
+    res.json(results);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch data' });
+    res.status(500).json({ error: "Failed to fetch data" });
   }
 };
