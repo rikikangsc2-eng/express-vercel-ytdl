@@ -21,6 +21,8 @@
   },
   "homepage": "https://github.com/hatuanem199801/express-vercel#readme",
   "dependencies": {
+    "axios-cookiejar-support":"*",
+    "tough-cookie":"*",
     "axios": "^1.7.9",
     "elevenlabs-node": "^2.0.3",
     "express": "^4.17.1",
