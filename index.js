@@ -367,6 +367,7 @@ app.get('/top', async (req, res) => {
 });
 app.get('/topuser', async (req, res) => {
   try {
+    // Ambil data dari endpoint
     const response = await axios.get('https://copper-ambiguous-velvet.glitch.me/data/users', {
       headers: { 'User-Agent': 'TopUsersApp/1.0' }
     });
@@ -374,6 +375,7 @@ app.get('/topuser', async (req, res) => {
 
     if (!data || !data.users) throw new Error('Data tidak ditemukan');
 
+    // Siapkan array user
     const usersObj = data.users;
     let usersArray = Object.keys(usersObj).map(username => ({
       username,
@@ -381,60 +383,64 @@ app.get('/topuser', async (req, res) => {
       points: usersObj[username].points || 0
     }));
 
-    // Urutkan berdasarkan points tertinggi dan ambil 5 besar
+    // Urutkan dan ambil 5 besar
     usersArray.sort((a, b) => b.points - a.points);
     usersArray = usersArray.slice(0, 5);
 
-    // Fungsi untuk mengonversi angka menjadi format singkat
+    // Fungsi format points (1k, 2k, dsb.)
     const formatPoints = (points) => {
-      if (points >= 1000) return (points / 1000).toFixed(1) + 'k';
+      if (points >= 1000) {
+        return (points / 1000).toFixed(1) + 'k';
+      }
       return points;
     };
 
+    // Siapkan style peringkat
+    const styles = [
+      { bg: 'bg-yellow-100', text: 'text-yellow-500', icon: 'fas fa-crown', rankClass: 'rank-1-name' },
+      { bg: 'bg-red-100', text: 'text-red-500', icon: 'fas fa-medal', rankClass: 'rank-2-name' },
+      { bg: 'bg-blue-100', text: 'text-blue-500', icon: 'fas fa-trophy', rankClass: 'rank-3-name' },
+      { bg: 'bg-gray-100', text: 'text-gray-400', icon: '', rankClass: 'rank-4-name' },
+      { bg: 'bg-gray-100', text: 'text-gray-600', icon: '', rankClass: 'rank-5-name' }
+    ];
+
+    // Generate HTML
     let rowsHtml = '';
     usersArray.forEach((user, index) => {
       const displayName = user.name.toUpperCase();
       const formattedPoints = formatPoints(user.points);
 
-      const styles = [
-        { bg: 'bg-yellow-100', text: 'text-yellow-500', icon: 'fas fa-crown', rankClass: 'rank-1-name' },
-        { bg: 'bg-red-100', text: 'text-red-500', icon: 'fas fa-medal', rankClass: 'rank-2-name' },
-        { bg: 'bg-blue-100', text: 'text-blue-500', icon: 'fas fa-trophy', rankClass: 'rank-3-name' },
-        { bg: 'bg-gray-100', text: 'text-gray-400', icon: '', rankClass: 'rank-4-name' },
-        { bg: 'bg-gray-100', text: 'text-gray-600', icon: '', rankClass: 'rank-5-name' }
-      ];
-
       const { bg, text, icon, rankClass } = styles[index];
 
       rowsHtml += `
-        <div class="mb-4 p-4 rounded-md shadow-sm flex justify-between items-center ${bg}">
-          <div class="flex items-center">
-            <div class="text-xl font-bold ${text} mr-4">
+        <div class="mb-4 p-4 rounded-md shadow-sm flex items-center justify-between ${bg} min-w-0">
+          <!-- Bagian Kiri: Icon dan Nama -->
+          <div class="flex items-center flex-1 min-w-0">
+            <div class="text-2xl font-bold ${text} mr-4">
               ${icon ? `<i class="${icon}"></i>` : index + 1}
             </div>
-            <div class="text-lg sm:text-xl md:text-2xl font-bold ${rankClass} truncate max-w-[70%]">
+            <div class="text-xl sm:text-2xl font-bold ${rankClass} truncate min-w-0">
               ${displayName}
             </div>
           </div>
-          <div class="text-lg sm:text-2xl font-bold text-gray-800">
+          <!-- Bagian Kanan: Poin -->
+          <div class="text-2xl font-bold text-gray-800 ml-2">
             ${formattedPoints}
           </div>
         </div>`;
     });
 
+    // Kirim tampilan HTML
     res.send(`<!DOCTYPE html>
 <html lang="en">
- <head>
+<head>
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
   <title>Leaderboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
   <style>
-    /* Responsive Styling */
-    .truncate { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-
-    /* Rank 1 (Fire Effect) */
+    /* Rank 1 (Api) */
     .rank-1-name {
       text-shadow: 2px 2px 4px rgba(255, 165, 0, 0.8), -2px -2px 4px rgba(255, 69, 0, 0.8);
       animation: fire-effect 0.5s infinite alternate;
@@ -443,18 +449,15 @@ app.get('/topuser', async (req, res) => {
       from { color: #ff8c00; }
       to { color: #ff4500; }
     }
-
-    /* Rank 2 and 3 (3D effect) */
+    /* Rank 2 & 3 (3D effect) */
     .rank-2-name, .rank-3-name { text-shadow: 1px 1px 2px #000; }
-
     /* Rank 4 */
     .rank-4-name { color: #555; }
-
-    /* Rank 5 (Strikethrough) */
+    /* Rank 5 (Coret) */
     .rank-5-name { color: #777; text-decoration: line-through wavy #333; }
   </style>
- </head>
- <body class="bg-gray-200">
+</head>
+<body class="bg-gray-200">
   <div class="max-w-md mx-auto mt-10 rounded-lg shadow-xl overflow-hidden">
     <div class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-6 flex items-center justify-center">
       <img alt="Logo" class="w-14 h-14 mr-4 rounded-full shadow-md" src="https://NirKyy.koyeb.app/example.jpg"/>
@@ -467,9 +470,10 @@ app.get('/topuser', async (req, res) => {
       ${rowsHtml}
     </div>
   </div>
- </body>
+</body>
 </html>`);
   } catch (error) {
+    // Jika error, tampilkan halaman error
     res.send(`<!DOCTYPE html>
 <html lang="en">
  <head>
