@@ -365,7 +365,6 @@ app.get('/top', async (req, res) => {
     res.status(500).send("Error mengambil screenshot");
   }
 });
-
 app.get('/topuser', async (req, res) => {
   try {
     const response = await axios.get('https://copper-ambiguous-velvet.glitch.me/data/users', {
@@ -386,86 +385,41 @@ app.get('/topuser', async (req, res) => {
     usersArray.sort((a, b) => b.points - a.points);
     usersArray = usersArray.slice(0, 5);
 
+    // Fungsi untuk mengonversi angka menjadi format singkat
+    const formatPoints = (points) => {
+      if (points >= 1000) return (points / 1000).toFixed(1) + 'k';
+      return points;
+    };
+
     let rowsHtml = '';
     usersArray.forEach((user, index) => {
-      // Ubah nama menjadi huruf kapital agar sesuai dengan contoh
       const displayName = user.name.toUpperCase();
-      if (index === 0) {
-        rowsHtml += `
-    <div class="mb-4 p-4 rounded-md shadow-sm flex justify-between items-center bg-yellow-100">
-      <div class="flex items-center">
-        <div class="text-4xl font-bold text-yellow-500 mr-4">
-          <i class="fas fa-crown"></i>
-        </div>
-        <div class="text-2xl font-bold rank-1-name">
-          ${displayName}
-        </div>
-      </div>
-      <div class="text-4xl font-bold text-gray-800">
-        ${user.points}
-      </div>
-    </div>`;
-      } else if (index === 1) {
-        rowsHtml += `
-    <div class="mb-4 p-4 rounded-md shadow-sm flex justify-between items-center bg-red-100">
-      <div class="flex items-center">
-        <div class="text-3xl font-bold text-red-500 mr-4">
-          <i class="fas fa-medal"></i>
-        </div>
-        <div class="text-2xl font-bold rank-2-name">
-          ${displayName}
-        </div>
-      </div>
-      <div class="text-4xl font-bold text-gray-800">
-        ${user.points}
-      </div>
-    </div>`;
-      } else if (index === 2) {
-        rowsHtml += `
-    <div class="mb-4 p-4 rounded-md shadow-sm flex justify-between items-center bg-blue-100">
-      <div class="flex items-center">
-        <div class="text-2xl font-bold text-blue-500 mr-4">
-          <i class="fas fa-trophy"></i>
-        </div>
-        <div class="text-2xl font-bold rank-3-name">
-          ${displayName}
-        </div>
-      </div>
-      <div class="text-4xl font-bold text-gray-800">
-        ${user.points}
-      </div>
-    </div>`;
-      } else if (index === 3) {
-        rowsHtml += `
-    <div class="mb-4 p-4 rounded-md shadow-sm flex justify-between items-center bg-gray-100">
-      <div class="flex items-center">
-        <div class="text-xl font-bold text-gray-400 mr-4">
-          ${index + 1}
-        </div>
-        <div class="text-2xl font-bold rank-4-name">
-          ${displayName}
-        </div>
-      </div>
-      <div class="text-4xl font-bold text-gray-800">
-        ${user.points}
-      </div>
-    </div>`;
-      } else if (index === 4) {
-        rowsHtml += `
-    <div class="p-4 rounded-md shadow-sm flex justify-between items-center bg-gray-100">
-      <div class="flex items-center">
-        <div class="text-lg font-bold text-gray-600 mr-4">
-          ${index + 1}
-        </div>
-        <div class="text-2xl font-bold rank-5-name">
-          ${displayName}
-        </div>
-      </div>
-      <div class="text-4xl font-bold text-gray-800">
-        ${user.points}
-      </div>
-    </div>`;
-      }
+      const formattedPoints = formatPoints(user.points);
+
+      const styles = [
+        { bg: 'bg-yellow-100', text: 'text-yellow-500', icon: 'fas fa-crown', rankClass: 'rank-1-name' },
+        { bg: 'bg-red-100', text: 'text-red-500', icon: 'fas fa-medal', rankClass: 'rank-2-name' },
+        { bg: 'bg-blue-100', text: 'text-blue-500', icon: 'fas fa-trophy', rankClass: 'rank-3-name' },
+        { bg: 'bg-gray-100', text: 'text-gray-400', icon: '', rankClass: 'rank-4-name' },
+        { bg: 'bg-gray-100', text: 'text-gray-600', icon: '', rankClass: 'rank-5-name' }
+      ];
+
+      const { bg, text, icon, rankClass } = styles[index];
+
+      rowsHtml += `
+        <div class="mb-4 p-4 rounded-md shadow-sm flex justify-between items-center ${bg}">
+          <div class="flex items-center">
+            <div class="text-xl font-bold ${text} mr-4">
+              ${icon ? `<i class="${icon}"></i>` : index + 1}
+            </div>
+            <div class="text-lg sm:text-xl md:text-2xl font-bold ${rankClass} truncate max-w-[70%]">
+              ${displayName}
+            </div>
+          </div>
+          <div class="text-lg sm:text-2xl font-bold text-gray-800">
+            ${formattedPoints}
+          </div>
+        </div>`;
     });
 
     res.send(`<!DOCTYPE html>
@@ -477,7 +431,10 @@ app.get('/topuser', async (req, res) => {
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
   <style>
-    /* Style untuk nama peringkat 1 (3D Berapi-api) */
+    /* Responsive Styling */
+    .truncate { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+    /* Rank 1 (Fire Effect) */
     .rank-1-name {
       text-shadow: 2px 2px 4px rgba(255, 165, 0, 0.8), -2px -2px 4px rgba(255, 69, 0, 0.8);
       animation: fire-effect 0.5s infinite alternate;
@@ -486,30 +443,22 @@ app.get('/topuser', async (req, res) => {
       from { color: #ff8c00; }
       to { color: #ff4500; }
     }
-    /* Style untuk nama peringkat 2 (3D) */
-    .rank-2-name {
-      text-shadow: 1px 1px 2px #000;
-    }
-    /* Style untuk nama peringkat 3 (3D) */
-    .rank-3-name {
-      text-shadow: 1px 1px 2px #000;
-    }
-    /* Style untuk nama peringkat 4 */
-    .rank-4-name {
-      color: #555;
-    }
-    /* Style untuk nama peringkat 5 (3D Kotor) */
-    .rank-5-name {
-      color: #777;
-      text-decoration: line-through wavy #333;
-    }
+
+    /* Rank 2 and 3 (3D effect) */
+    .rank-2-name, .rank-3-name { text-shadow: 1px 1px 2px #000; }
+
+    /* Rank 4 */
+    .rank-4-name { color: #555; }
+
+    /* Rank 5 (Strikethrough) */
+    .rank-5-name { color: #777; text-decoration: line-through wavy #333; }
   </style>
  </head>
  <body class="bg-gray-200">
   <div class="max-w-md mx-auto mt-10 rounded-lg shadow-xl overflow-hidden">
     <div class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-6 flex items-center justify-center">
       <img alt="Logo" class="w-14 h-14 mr-4 rounded-full shadow-md" src="https://NirKyy.koyeb.app/example.jpg"/>
-      <h1 class="text-2xl font-bold text-center">
+      <h1 class="text-lg sm:text-2xl font-bold text-center">
         <span class="block">Top Point Tertinggi</span>
         <span class="block">Alicia Games</span>
       </h1>
