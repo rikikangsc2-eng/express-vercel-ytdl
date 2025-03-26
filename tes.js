@@ -14,14 +14,16 @@ module.exports = async (req, res) => {
     const $ = cheerio.load(response.data);
     const result = [];
     
-    $('.ranking-list').each((_, el) => {
-      const rank = $(el).find('.rank span').text().trim();
-      const title = $(el).find('.title a').text().trim();
-      const type = $(el).find('.information .type').text().trim();
-      const score = $(el).find('.score span').text().trim();
-      const members = $(el).find('.stats .members').text().trim().replace(' members', '');
-      const link = $(el).find('.title a').attr('href') ? `https://myanimelist.net${$(el).find('.title a').attr('href')}` : '';
-      const image = $(el).find('.image img').attr('data-src') || $(el).find('.image img').attr('src') || '';
+    $('.information').each((_, el) => {
+      const rank = $(el).find('.rank .text').text().trim();
+      const title = $(el).find('.title').text().trim();
+      const type = $(el).find('.misc .type').text().trim();
+      const score = $(el).find('.score').text().trim();
+      const members = $(el).find('.member').text().trim();
+      const link = $(el).next('.thumb').attr('href') || '';
+      
+      const imgDiv = $(el).parent().next('.tile-unit');
+      const image = imgDiv.data('bg') || '';
       
       if (rank && title) {
         result.push({ rank, title, type, score, members, link, image });
