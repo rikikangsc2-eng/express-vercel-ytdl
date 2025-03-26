@@ -1,83 +1,66 @@
 const axios = require("axios");
-const AWS = require("aws-sdk");
-const crypto = require("crypto");
-
-AWS.config.update({ region: "us-east-1" });
-
-async function generateSignature(credentials, requestDate, canonicalRequest) {
-  function hmac(key, data) {
-    return crypto.createHmac("sha256", key).update(data).digest();
-  }
-  
-  function getSignatureKey(key, dateStamp, regionName, serviceName) {
-    const kDate = hmac("AWS4" + key, dateStamp);
-    const kRegion = hmac(kDate, regionName);
-    const kService = hmac(kRegion, serviceName);
-    return hmac(kService, "aws4_request");
-  }
-  
-  const stringToSign = `AWS4-HMAC-SHA256
-${requestDate}T000000Z
-${requestDate}/us-east-1/execute-api/aws4_request
-${crypto.createHash("sha256").update(canonicalRequest).digest("hex")}`;
-  
-  const signingKey = getSignatureKey(credentials.secretAccessKey, requestDate, "us-east-1", "execute-api");
-  return crypto.createHmac("sha256", signingKey).update(stringToSign).digest("hex");
-}
 
 module.exports = async (req, res) => {
-  try {
-    const credentials = AWS.config.credentials;
-    
-    if (!credentials || !credentials.accessKeyId || !credentials.secretAccessKey) {
-      throw new Error("AWS credentials are not available.");
-    }
-    
-    const requestDate = new Date().toISOString().split("T")[0].replace(/-/g, "");
-    const host = "moxu0s1jnk.execute-api.us-east-1.amazonaws.com";
-    const endpoint = `https://${host}/prod-wpm/tts`;
-    
-    const queryParams = `e=user%40naturalreaders.com&l=0&r=161&s=0&v=ms&vn=10.4.14.3&sm=true&lo=id-ID`;
-    const payload = JSON.stringify({ t: "Aku gak tau sumpah" });
-    
-    const canonicalRequest = `POST
-/prod-wpm/tts
-${queryParams}
-content-type:application/json; charset=UTF-8
-host:${host}
-x-amz-date:${requestDate}T000000Z
-x-amz-security-token:${credentials.sessionToken}
+    const { prompt } = req.query;
 
-content-type;host;x-amz-date;x-amz-security-token
-${crypto.createHash("sha256").update(payload).digest("hex")}`;
-    
-    const signature = await generateSignature(credentials, requestDate, canonicalRequest);
-    
-    const headers = {
-      "Content-Type": "application/json; charset=UTF-8",
-      "x-amz-date": `${requestDate}T000000Z`,
-      "X-Amz-Security-Token": credentials.sessionToken,
-      Authorization: `AWS4-HMAC-SHA256 Credential=${credentials.accessKeyId}/${requestDate}/us-east-1/execute-api/aws4_request, SignedHeaders=content-type;host;x-amz-date;x-amz-security-token, Signature=${signature}`,
-    };
-    
-    const response = await axios.post(endpoint, payload, {
-      headers,
-      params: {
-        e: "user@naturalreaders.com",
-        l: "0",
-        r: "161",
-        s: "0",
-        v: "ms",
-        vn: "10.4.14.3",
-        sm: "true",
-        lo: "id-ID",
-      },
-      responseType: "arraybuffer",
-    });
-    
-    res.setHeader("Content-Type", "audio/mpeg");
-    res.send(response.data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+    if (!prompt) {
+        return res.status(400).json({ error: "Parameter 'prompt' diperlukan" });
+    }
+
+    try {
+        const checkPromptResponse = await axios.post(
+            "https://api.yanzgpt.my.id/v1/check_prompt",
+            { prompt },
+            {
+                headers: {
+                    "Accept": "application/json, text/plain, */*",
+                    "Content-Type": "application/json",
+                    "User-Agent": "Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.40 Mobile Safari/537.36"
+                }
+            }
+        );
+
+        if (!checkPromptResponse.data || checkPromptResponse.data.cmd !== "text_completion") {
+            return res.status(400).json({ error: "Prompt tidak valid untuk text completion" });
+        }
+
+        const chatResponse = await axios.post(
+            "https://api.yanzgpt.my.id/v1/chat",
+            {
+                messages: [{ role: "user", content: prompt }],
+                images: null,
+                model: "yanzgpt-revolution-25b-v3.5"
+            },
+            {
+                headers: {
+                    "Accept": "application/json, text/plain, */*",
+                    "Content-Type": "application/json",
+                    "authorization": "Bearer yzgpt-sc4tlKsMRdNMecNy",
+                    "User-Agent": "Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.40 Mobile Safari/537.36"
+                }
+            }
+        );
+
+        if (
+            !chatResponse.data ||
+            !chatResponse.data.choices ||
+            chatResponse.data.choices.length === 0
+        ) {
+            return res.status(500).json({ error: "Gagal mendapatkan respon dari API chat" });
+        }
+
+        res.json({ response: chatResponse.data.choices[0].message.content });
+
+    } catch (error) {
+        if (error.response) {
+            res.status(error.response.status).json({
+                error: "Error dari API eksternal",
+                details: error.response.data
+            });
+        } else if (error.request) {
+            res.status(500).json({ error: "Tidak ada respon dari API eksternal" });
+        } else {
+            res.status(500).json({ error: "Terjadi kesalahan", details: error.message });
+        }
+    }
 };
