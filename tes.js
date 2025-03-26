@@ -1,13 +1,12 @@
 const axios = require('axios');
-const AWS = require('aws-sdk');
+const { defaultProvider } = require('@aws-sdk/credential-provider-node');
 
 const getAWSCredentials = async () => {
-    const sts = new AWS.STS();
-    const data = await sts.getSessionToken().promise();
+    const credentials = await defaultProvider()();
     return {
-        accessKeyId: data.Credentials.AccessKeyId,
-        secretAccessKey: data.Credentials.SecretAccessKey,
-        sessionToken: data.Credentials.SessionToken
+        accessKeyId: credentials.accessKeyId,
+        secretAccessKey: credentials.secretAccessKey,
+        sessionToken: credentials.sessionToken
     };
 };
 
