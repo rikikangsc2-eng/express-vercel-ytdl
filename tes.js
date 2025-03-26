@@ -12,24 +12,26 @@ module.exports = async (req, res) => {
     });
     
     const $ = cheerio.load(response.data);
-    const animeList = [];
+    const result = [];
     
-    $('.information').each((i, el) => {
-      const rank = $(el).find('.rank span.text').text().trim();
-      const title = $(el).find('h2.title').text().trim();
+    $('.information').each((_, el) => {
+      const rank = $(el).find('.rank .text').text().trim();
+      const title = $(el).find('.title').text().trim();
       const type = $(el).find('.misc .type').text().trim();
-      const score = $(el).find('.misc .score').text().replace(/\s+/g, ' ').trim();
-      const members = $(el).find('.misc .member').text().replace(/\s+/g, ' ').trim();
-      const link = $(el).next('.tile-unit').find('a.thumb').attr('href');
-      const image = $(el).next('.tile-unit').attr('data-bg');
+      const score = $(el).find('.score').text().trim();
+      const members = $(el).find('.member').text().trim();
+      const link = $(el).next('.thumb').attr('href') || '';
+      
+      const imgDiv = $(el).parent().next('.tile-unit');
+      const image = imgDiv.data('bg') || '';
       
       if (rank && title) {
-        animeList.push({ rank, title, type, score, members, link, image });
+        result.push({ rank, title, type, score, members, link, image });
       }
     });
     
-    res.json({ success: true, data: animeList });
+    res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error fetching data' });
+    res.status(500).json({ error: error.message });
   }
 };
