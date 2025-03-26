@@ -6,7 +6,7 @@ module.exports = async (req, res) => {
     const data = querystring.stringify({
       from: "id_ID",
       to: "en_US",
-      text: "JUJUR AJA KAGA TAU GW ANJ",
+      text: "Kamu orang mana?",
       platform: "dp"
     });
 
