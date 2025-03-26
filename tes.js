@@ -1,33 +1,46 @@
-const axios = require("axios");
-const { JSDOM } = require("jsdom");
+const axios = require('axios');
+const AWS = require('aws-sdk');
+
+const getAWSCredentials = async () => {
+    const sts = new AWS.STS();
+    const data = await sts.getSessionToken().promise();
+    return {
+        accessKeyId: data.Credentials.AccessKeyId,
+        secretAccessKey: data.Credentials.SecretAccessKey,
+        sessionToken: data.Credentials.SessionToken
+    };
+};
 
 module.exports = async (req, res) => {
-  try {
-    const { data } = await axios.get("https://ligakorupsi.biz.id/", {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
-      }
-    });
-    
-    const dom = new JSDOM(data);
-    const document = dom.window.document;
-    const results = [];
-    
-    document.querySelectorAll("#korupsi-table tr").forEach(row => {
-      const columns = row.querySelectorAll("td");
-      if (columns.length >= 5) {
-        results.push({
-          rank: columns[0].textContent.trim(),
-          company: columns[1].textContent.trim(),
-          caseType: columns[2].textContent.trim(),
-          amount: columns[3].textContent.trim(),
-          trend: columns[4].textContent.trim()
-        });
-      }
-    });
-    
-    res.json(results);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch data", details: error.message });
-  }
+    try {
+        const credentials = await getAWSCredentials();
+        const response = await axios.post(
+            'https://moxu0s1jnk.execute-api.us-east-1.amazonaws.com/prod-wpm/tts',
+            { t: "Aku gak tau sumpah" },
+            {
+                headers: {
+                    "Content-Type": "application/json; charset=UTF-8",
+                    "x-amz-date": new Date().toISOString(),
+                    "X-Amz-Security-Token": credentials.sessionToken,
+                    "Authorization": `AWS4-HMAC-SHA256 Credential=${credentials.accessKeyId}/20250326/us-east-1/execute-api/aws4_request, SignedHeaders=content-type;host;x-amz-date;x-amz-security-token`
+                },
+                params: {
+                    e: "user@naturalreaders.com",
+                    l: "0",
+                    r: "161",
+                    s: "0",
+                    v: "ms",
+                    vn: "10.4.14.3",
+                    sm: "true",
+                    lo: "id-ID"
+                },
+                responseType: 'arraybuffer'
+            }
+        );
+
+        res.setHeader("Content-Type", "audio/mpeg");
+        res.send(Buffer.from(response.data));
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 };
