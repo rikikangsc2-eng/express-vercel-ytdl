@@ -21,7 +21,7 @@
   },
   "homepage": "https://github.com/hatuanem199801/express-vercel#readme",
   "dependencies": {
-    "@aws-sdk/credential-provider-node":"*",
+    "aws-sdk":"*",
     "jsdom":"*",
     "cheerio":"*",
     "cloudscraper":"*",
