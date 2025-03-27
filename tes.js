@@ -1,41 +1,36 @@
 const axios = require('axios');
-const cheerio = require('cheerio');
+const { JSDOM } = require('jsdom');
 
 module.exports = async (req, res) => {
-  const query = req.query.q || 'Lv2 kara';
-  const url = `https://samehadaku.mba/?s=${encodeURIComponent(query)}`;
-  
   try {
-    const { data } = await axios.get(url, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.40 Mobile Safari/537.36',
-        'Referer': url
-      }
-    });
+    const url = 'https://spowload.com/en';
+    const headers = {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.40 Mobile Safari/537.36',
+      'Referer': 'https://spowload.com/en'
+    };
     
-    const $ = cheerio.load(data);
-    const results = [];
+    const response = await axios.get(url, { headers });
+    const dom = new JSDOM(response.data);
+    const document = dom.window.document;
     
-    $('.animepost').each((_, el) => {
-      const element = $(el).find('.animposx a');
-      const title = element.attr('title');
-      const link = element.attr('href');
-      const image = element.find('img').attr('src');
-      const type = element.find('.type').text().trim();
-      const score = element.find('.score').text().trim();
-      const synopsis = $(el).find('.stooltip .ttls').text().trim();
-      const genres = [];
-      
-      $(el).find('.stooltip .genres a').each((_, genreEl) => {
-        genres.push($(genreEl).text().trim());
-      });
-      
-      results.push({ title, link, image, type, score, synopsis, genres });
-    });
+    const form = document.querySelector('form');
+    if (!form) throw new Error('Form not found');
     
-    res.json({ success: true, results });
+    const formAction = form.action || url;
+    const inputName = document.querySelector('input[name="trackUrl"]');
+    if (!inputName) throw new Error('Input field not found');
+    
+    const data = new URLSearchParams();
+    data.append(inputName.name, 'https://open.spotify.com/intl-id/track/1hlHeIZ36Idpr57xPI8OCD');
+    
+    const submitResponse = await axios.post(formAction, data, { headers, maxRedirects: 0 });
+    
+    const redirectUrl = submitResponse.headers.location;
+    if (!redirectUrl) throw new Error('Redirect URL not found');
+    
+    res.redirect(redirectUrl);
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error fetching data', error: error.message });
+    res.status(500).json({ error: error.message });
   }
 };
