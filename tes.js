@@ -14,17 +14,27 @@ module.exports = async (req, res) => {
     const dom = new JSDOM(response.data);
     const document = dom.window.document;
     
-    const form = document.querySelector('form');
-    if (!form) throw new Error('Form not found');
+    const csrfToken = document.querySelector('input[name="_token"]')?.value;
+    if (!csrfToken) throw new Error('CSRF token not found');
     
-    const formAction = form.action || url;
+    const formAction = document.querySelector('form')?.action || url;
     const inputName = document.querySelector('input[name="trackUrl"]');
     if (!inputName) throw new Error('Input field not found');
     
     const data = new URLSearchParams();
+    data.append('_token', csrfToken);
     data.append(inputName.name, 'https://open.spotify.com/intl-id/track/1hlHeIZ36Idpr57xPI8OCD');
     
-    const submitResponse = await axios.post(formAction, data, { headers, maxRedirects: 0 });
+    const cookies = response.headers['set-cookie'];
+    const cookieHeader = cookies ? cookies.join('; ') : '';
+    
+    headers['Cookie'] = cookieHeader;
+    
+    const submitResponse = await axios.post(formAction, data, {
+      headers,
+      maxRedirects: 0,
+      validateStatus: (status) => status === 302
+    });
     
     const redirectUrl = submitResponse.headers.location;
     if (!redirectUrl) throw new Error('Redirect URL not found');
