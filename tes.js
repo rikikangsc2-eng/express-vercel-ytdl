@@ -13,16 +13,15 @@ module.exports = async (req, res) => {
     });
     
     const cookies = initialResponse.headers["set-cookie"];
-    
     const $ = cheerio.load(initialResponse.data);
     const csrftoken = $("input[name='csrfmiddlewaretoken']").val();
-    const ias = Math.floor(Math.random() * 1e10).toString();
+    const ias = $("input[name='ias']").val() || Math.floor(Math.random() * 1e10).toString();
     
     if (!csrftoken) {
       return res.status(500).json({ error: "CSRF token not found" });
     }
     
-    console.log("CSRF Token:", csrftoken);
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
     const postData = new URLSearchParams({
       csrfmiddlewaretoken: csrftoken,
@@ -60,9 +59,7 @@ module.exports = async (req, res) => {
     } else {
       return res.status(500).json({ error: "Failed to generate screenshot", details: screenshotResponse.data });
     }
-    
   } catch (error) {
-    console.error("Error:", error.message);
     return res.status(500).json({ error: "Internal server error", details: error.message });
   }
 };
