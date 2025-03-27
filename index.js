@@ -5,7 +5,7 @@ const rpg = require('./brat');
 const test = require('./tes.js')
 const app = express();
 
-const listKey = ['5130b8', 'c87ac1', '21a5cf', '047eff', '09fd34'];
+const listKey = ['5130b8', 'c87ac1'];
 const randomKey = () => listKey[Math.floor(Math.random() * listKey.length)];
 const sskey = randomKey();
 
