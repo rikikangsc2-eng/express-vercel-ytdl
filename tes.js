@@ -17,7 +17,6 @@ module.exports = async (req, res) => {
     const csrfToken = document.querySelector('input[name="_token"]')?.value;
     if (!csrfToken) throw new Error('CSRF token not found');
     
-    const formAction = document.querySelector('form')?.action || baseUrl;
     const data = new URLSearchParams();
     data.append('_token', csrfToken);
     data.append('trackUrl', trackUrl);
@@ -26,17 +25,25 @@ module.exports = async (req, res) => {
     headers['Cookie'] = cookies;
     headers['Content-Type'] = 'application/x-www-form-urlencoded';
     
-    const submitResponse = await axios.post(formAction, data, { headers });
+    const submitResponse = await axios.post(baseUrl, data, {
+      headers,
+      maxRedirects: 0,
+      validateStatus: (status) => status === 302
+    });
     
-    const redirectDom = new JSDOM(submitResponse.data);
+    const redirectUrl = submitResponse.headers.location;
+    if (!redirectUrl) throw new Error('Redirect URL not found');
+    
+    const redirectResponse = await axios.get(redirectUrl, { headers });
+    const redirectDom = new JSDOM(redirectResponse.data);
     const redirectDocument = redirectDom.window.document;
     
     const convertButton = redirectDocument.querySelector(`button[id="1hlHeIZ36Idpr57xPI8OCD"]`);
     if (!convertButton) throw new Error('Convert button not found');
     
-    const convertUrl = formAction.replace('/en', `/spotify/track-1hlHeIZ36Idpr57xPI8OCD`);
-    
+    const convertUrl = redirectUrl;
     const finalResponse = await axios.get(convertUrl, { headers });
+    
     const finalDom = new JSDOM(finalResponse.data);
     const finalDocument = finalDom.window.document;
     
