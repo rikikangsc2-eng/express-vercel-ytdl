@@ -10,6 +10,7 @@ module.exports = async (req, res) => {
       'Referer': baseUrl
     };
     
+    // Step 1: Dapatkan halaman utama dan ambil CSRF token
     const initialResponse = await axios.get(baseUrl, { headers });
     const dom = new JSDOM(initialResponse.data);
     const document = dom.window.document;
@@ -17,15 +18,18 @@ module.exports = async (req, res) => {
     const csrfToken = document.querySelector('input[name="_token"]')?.value;
     if (!csrfToken) throw new Error('CSRF token not found');
     
+    const formAction = document.querySelector('form')?.action || baseUrl;
+    const cookies = initialResponse.headers['set-cookie']?.join('; ') || '';
+    
+    headers['Cookie'] = cookies;
+    headers['Content-Type'] = 'application/x-www-form-urlencoded';
+    
     const data = new URLSearchParams();
     data.append('_token', csrfToken);
     data.append('trackUrl', trackUrl);
     
-    const cookies = initialResponse.headers['set-cookie']?.join('; ') || '';
-    headers['Cookie'] = cookies;
-    headers['Content-Type'] = 'application/x-www-form-urlencoded';
-    
-    const submitResponse = await axios.post(baseUrl, data, {
+    // Step 2: Submit form dengan track URL untuk mendapatkan redirect
+    const submitResponse = await axios.post(formAction, data, {
       headers,
       maxRedirects: 0,
       validateStatus: (status) => status === 302
@@ -34,19 +38,23 @@ module.exports = async (req, res) => {
     const redirectUrl = submitResponse.headers.location;
     if (!redirectUrl) throw new Error('Redirect URL not found');
     
+    // Step 3: Akses halaman hasil convert
     const redirectResponse = await axios.get(redirectUrl, { headers });
     const redirectDom = new JSDOM(redirectResponse.data);
     const redirectDocument = redirectDom.window.document;
     
+    // Cek apakah tombol convert ada
     const convertButton = redirectDocument.querySelector(`button[id="1hlHeIZ36Idpr57xPI8OCD"]`);
     if (!convertButton) throw new Error('Convert button not found');
     
-    const convertUrl = redirectUrl;
-    const finalResponse = await axios.get(convertUrl, { headers });
+    // Step 4: Kirim permintaan untuk menekan tombol convert
+    const convertUrl = redirectUrl.replace('/spotify/', '/api/convert/');
+    const convertResponse = await axios.post(convertUrl, data, { headers });
     
-    const finalDom = new JSDOM(finalResponse.data);
+    const finalDom = new JSDOM(convertResponse.data);
     const finalDocument = finalDom.window.document;
     
+    // Step 5: Ambil link download
     const downloadLink = finalDocument.querySelector('a[data-url]')?.getAttribute('data-url');
     if (!downloadLink) throw new Error('Download link not found');
     
