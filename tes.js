@@ -3,7 +3,7 @@ const qs = require('querystring');
 
 const getNonce = async () => {
   try {
-    const response = await axios.get('https://chatgptfree.ai/wp-admin/admin-ajax.php', {
+    const response = await axios.get('https://chatgptfree.ai/', {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.40 Mobile Safari/537.36'
       }
