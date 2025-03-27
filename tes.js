@@ -42,15 +42,12 @@ module.exports = async (req, res) => {
     const redirectUrl = submitResponse.headers.location;
     if (!redirectUrl) throw new Error('Redirect URL not found');
     
-    const apiResponse = await axios.get(redirectUrl, { headers });
-    const apiDom = new JSDOM(apiResponse.data);
-    const apiDocument = apiDom.window.document;
+    const redirectResponse = await axios.get(redirectUrl, { headers });
+    const redirectDom = new JSDOM(redirectResponse.data);
+    const redirectDocument = redirectDom.window.document;
     
-    const newCsrfToken = apiDocument.querySelector('meta[name="csrf-token"]')?.content;
+    const newCsrfToken = redirectDocument.querySelector('meta[name="csrf-token"]')?.content;
     if (!newCsrfToken) throw new Error('New CSRF token not found');
-    
-    const coverImage = apiDocument.querySelector('img.img-thumbnail.w-100')?.src;
-    if (!coverImage) throw new Error('Cover image not found');
     
     const finalHeaders = {
       'Content-Type': 'application/json',
@@ -60,14 +57,14 @@ module.exports = async (req, res) => {
     
     const finalData = {
       urls: spotifyUrl,
-      cover: coverImage
+      cover: ""
     };
     
     const finalResponse = await axios.post('https://spowload.com/convert', finalData, { headers: finalHeaders });
     
     if (finalResponse.data.error) throw new Error('Conversion failed');
     
-    res.json({ download_url: finalResponse.data.url });
+    res.json(finalResponse.data);
     
   } catch (error) {
     res.status(500).json({ error: error.message });
