@@ -9,8 +9,9 @@ module.exports = async (req, res) => {
     }
     
     const url = 'https://spowload.com/en';
+    const userAgent = 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.40 Mobile Safari/537.36';
     const headers = {
-      'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.40 Mobile Safari/537.36',
+      'User-Agent': userAgent,
       'Referer': url
     };
     
@@ -52,7 +53,8 @@ module.exports = async (req, res) => {
     const finalHeaders = {
       'Content-Type': 'application/json',
       'X-CSRF-TOKEN': newCsrfToken,
-      'Cookie': cookieHeader
+      'Cookie': cookieHeader,
+      'User-Agent': userAgent
     };
     
     const finalData = {
@@ -64,8 +66,22 @@ module.exports = async (req, res) => {
     
     if (finalResponse.data.error) throw new Error('Conversion failed');
     
-    res.json(finalResponse.data);
+    const downloadUrl = finalResponse.data.url;
+    if (!downloadUrl) throw new Error('Download URL not found');
     
+    const downloadStream = await axios({
+      url: downloadUrl,
+      method: 'GET',
+      responseType: 'stream',
+      headers: {
+        'User-Agent': userAgent
+      }
+    });
+    
+    res.setHeader('Content-Disposition', 'attachment; filename=download.mp3');
+    res.setHeader('Content-Type', 'audio/mpeg');
+    
+    downloadStream.data.pipe(res);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
