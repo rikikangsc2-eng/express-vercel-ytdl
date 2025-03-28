@@ -4,7 +4,9 @@ const { JSDOM } = require('jsdom');
 module.exports = async (req, res) => {
   try {
     const targetUrl = req.query.url;
-    if (!targetUrl) return res.status(400).json({ error: "Parameter 'url' diperlukan" });
+    if (!targetUrl) {
+      return res.status(400).json({ error: "Parameter 'url' diperlukan" });
+    }
     
     const headers = {
       'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.40 Mobile Safari/537.36',
@@ -12,9 +14,11 @@ module.exports = async (req, res) => {
       'Content-Type': 'application/x-www-form-urlencoded'
     };
     
-    // 1. Request halaman awal untuk mendapatkan cookie
+    // 1. Request halaman awal untuk mendapatkan cookie (jika tersedia)
     const initialResponse = await axios.get('https://urltoscreenshot.com/', { headers });
-    const cookies = initialResponse.headers['set-cookie'].join('; ');
+    
+    // Ambil cookie jika tersedia, jika tidak biarkan kosong
+    const cookies = initialResponse.headers['set-cookie'] ? initialResponse.headers['set-cookie'].map(c => c.split(';')[0]).join('; ') : '';
     
     // 2. Kirim URL ke input form
     const formData = new URLSearchParams();
@@ -34,7 +38,9 @@ module.exports = async (req, res) => {
     const dom = new JSDOM(finalResponse.data);
     const imageElement = dom.window.document.querySelector('#demo_screenshot_image img');
     
-    if (!imageElement) return res.status(404).json({ error: "Gambar screenshot tidak ditemukan" });
+    if (!imageElement) {
+      return res.status(404).json({ error: "Gambar screenshot tidak ditemukan" });
+    }
     
     const screenshotUrl = `https://urltoscreenshot.com/${imageElement.getAttribute('src')}`;
     
