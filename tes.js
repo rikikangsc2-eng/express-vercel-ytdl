@@ -3,31 +3,45 @@ const { JSDOM } = require('jsdom');
 
 module.exports = async (req, res) => {
   try {
-    const targetUrl = req.query.url || 'http://www.cnbc.com';
+    const targetUrl = req.query.url;
+    if (!targetUrl) return res.status(400).json({ error: "Parameter 'url' diperlukan" });
     
-    const response = await axios.post(
-      'https://urltoscreenshot.com/',
-      `url=${encodeURIComponent(targetUrl)}`,
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.40 Mobile Safari/537.36',
-          'Referer': 'https://urltoscreenshot.com/'
-        }
-      }
-    );
+    const headers = {
+      'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.40 Mobile Safari/537.36',
+      'Referer': 'https://urltoscreenshot.com/',
+      'Content-Type': 'application/x-www-form-urlencoded'
+    };
     
-    const dom = new JSDOM(response.data);
-    const screenshotImg = dom.window.document.querySelector('#demo_screenshot_image img');
+    // 1. Request halaman awal untuk mendapatkan cookie
+    const initialResponse = await axios.get('https://urltoscreenshot.com/', { headers });
+    const cookies = initialResponse.headers['set-cookie'].join('; ');
     
-    if (!screenshotImg) {
-      return res.status(500).json({ error: 'Gagal mengambil screenshot' });
-    }
+    // 2. Kirim URL ke input form
+    const formData = new URLSearchParams();
+    formData.append('demo_screenshot_url', targetUrl);
+    formData.append('submit', 'Capture');
     
-    const imageUrl = screenshotImg.getAttribute('src');
+    await axios.post('https://urltoscreenshot.com/', formData.toString(), {
+      headers: { ...headers, 'Cookie': cookies }
+    });
     
-    res.json({ screenshot: imageUrl });
+    // 3. Ambil kembali halaman setelah submit
+    const finalResponse = await axios.get('https://urltoscreenshot.com/', {
+      headers: { ...headers, 'Cookie': cookies }
+    });
+    
+    // 4. Parse HTML untuk mendapatkan URL gambar screenshot
+    const dom = new JSDOM(finalResponse.data);
+    const imageElement = dom.window.document.querySelector('#demo_screenshot_image img');
+    
+    if (!imageElement) return res.status(404).json({ error: "Gambar screenshot tidak ditemukan" });
+    
+    const screenshotUrl = `https://urltoscreenshot.com/${imageElement.getAttribute('src')}`;
+    
+    // 5. Kirim hasil ke client
+    res.json({ screenshot: screenshotUrl });
+    
   } catch (error) {
-    res.status(500).json({ error: 'Terjadi kesalahan', details: error.message });
+    res.status(500).json({ error: "Terjadi kesalahan", details: error.message });
   }
 };
