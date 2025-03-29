@@ -1,29 +1,23 @@
 const axios = require('axios'); const { JSDOM } = require('jsdom');
 
-module.exports = async (req, res) => { try { const response = await axios.post('https://ngl.link/NGL', null, { headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.40 Mobile Safari/537.36', 'Referer': 'https://ngl.link/NGL' } });
+module.exports = async (req, res) => { try { const url = 'https://ngl.link/NGL'; const headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.40 Mobile Safari/537.36', 'Referer': url };
 
-const dom = new JSDOM(response.data);
-    const form = dom.window.document.querySelector('textarea[name="question"]');
-    const button = dom.window.document.querySelector('button.submit');
+const response = await axios.get(url, { headers });
+    const dom = new JSDOM(response.data);
+    const document = dom.window.document;
 
-    if (!form || !button) {
-        return res.status(500).send('Element not found');
-    }
-    
     const formData = new URLSearchParams();
-    formData.append('question', 'Hello, this is a test message');
+    formData.append('question', 'Hai apa kabar');
 
-    await axios.post('https://ngl.link/NGL', formData.toString(), {
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.40 Mobile Safari/537.36',
-            'Referer': 'https://ngl.link/NGL'
-        }
+    const submitUrl = url + document.querySelector('form').getAttribute('action');
+    const submitResponse = await axios.post(submitUrl, formData.toString(), {
+        headers: { ...headers, 'Content-Length': formData.toString().length }
     });
-    
-    res.redirect('https://ngl.link/NGL');
+
+    const redirectUrl = submitResponse.headers.location || 'No Redirect Found';
+    res.json({ redirectUrl });
 } catch (error) {
-    res.status(500).send('Error occurred');
+    res.status(500).json({ error: error.message });
 }
 
 };
