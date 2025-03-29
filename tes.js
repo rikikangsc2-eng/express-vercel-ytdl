@@ -1,14 +1,11 @@
 const axios = require('axios'); const { JSDOM } = require('jsdom');
 
+const axiosInstance = axios.create({ withCredentials: true, headers: { 'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.40 Mobile Safari/537.36', 'Referer': 'https://spowload.com/en', 'Origin': 'https://spowload.com', 'Accept': 'application/json, text/plain, /', 'X-Requested-With': 'XMLHttpRequest' } });
+
 module.exports = async (req, res) => { try { const baseUrl = 'https://spowload.com/en'; const analyzeUrl = 'https://spowload.com/analyze';
 
 // Step 1: Get the page and extract CSRF token
-    const response = await axios.get(baseUrl, {
-        headers: {
-            'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.40 Mobile Safari/537.36',
-            'Referer': baseUrl
-        }
-    });
+    const response = await axiosInstance.get(baseUrl);
     
     const dom = new JSDOM(response.data);
     const token = dom.window.document.querySelector('input[name="_token"]').value;
@@ -19,11 +16,9 @@ module.exports = async (req, res) => { try { const baseUrl = 'https://spowload.c
     formData.append('_token', token);
     formData.append('trackUrl', trackUrl);
     
-    const analyzeResponse = await axios.post(analyzeUrl, formData, {
+    const analyzeResponse = await axiosInstance.post(analyzeUrl, formData, {
         headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.40 Mobile Safari/537.36',
-            'Referer': baseUrl
+            'Content-Type': 'application/x-www-form-urlencoded'
         },
         maxRedirects: 0,
         validateStatus: status => status === 302 // Capture redirect response
