@@ -1,56 +1,22 @@
-const { JSDOM } = require("jsdom"); const axios = require("axios"); const qs = require("querystring");
+const axios = require('axios'); const { JSDOM } = require('jsdom');
 
-module.exports = async (req, res) => { try { let cookies = "";
+module.exports = async (req, res) => { try { const { data } = await axios.get('https://www.jadwaltv.net/jadwal-sepakbola'); const dom = new JSDOM(data); const document = dom.window.document; const rows = document.querySelectorAll('tr.jklIv'); const matches = [];
 
-const response = await axios.get("https://soundoftext.com/", {
-        headers: {
-            "User-Agent": "Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.40 Mobile Safari/537.36",
-            "Referer": "https://soundoftext.com/"
+rows.forEach(row => {
+        const columns = row.querySelectorAll('td');
+        if (columns.length === 4) {
+            matches.push({
+                date: columns[0].textContent.trim(),
+                time: columns[1].textContent.trim(),
+                match: columns[2].textContent.trim(),
+                league: columns[3].textContent.trim()
+            });
         }
     });
     
-    if (response.headers["set-cookie"]) {
-        cookies = response.headers["set-cookie"].join("; ");
-    }
-    
-    const dom = new JSDOM(response.data);
-    const document = dom.window.document;
-    
-    const select = document.querySelector("select[name='voice']");
-    const textarea = document.querySelector("textarea[name='text']");
-    const submitButton = document.querySelector("input[type='submit']");
-    
-    if (!select || !textarea || !submitButton) {
-        return res.json({ success: false, message: "Gagal menemukan elemen formulir" });
-    }
-    
-    textarea.value = req.query.text || "Halo";
-    select.value = "id-ID";
-    
-    submitButton.click();
-    
-    setTimeout(async () => {
-        const newResponse = await axios.get("https://soundoftext.com/", {
-            headers: {
-                "User-Agent": "Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.40 Mobile Safari/537.36",
-                "Referer": "https://soundoftext.com/",
-                "Cookie": cookies
-            }
-        });
-        
-        const newDom = new JSDOM(newResponse.data);
-        const newDocument = newDom.window.document;
-        const downloadLink = newDocument.querySelector("a.card__action");
-        
-        if (downloadLink) {
-            res.json({ success: true, url: downloadLink.href });
-        } else {
-            res.json({ success: false, message: "Gagal mendapatkan link download" });
-        }
-    }, 3000);
-    
+    res.json(matches);
 } catch (error) {
-    res.json({ success: false, message: error.message });
+    res.status(500).json({ error: 'Failed to fetch data' });
 }
 
 };
