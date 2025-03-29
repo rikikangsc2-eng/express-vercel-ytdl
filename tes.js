@@ -1,40 +1,25 @@
 const axios = require('axios');
-const { JSDOM } = require('jsdom');
+const jsdom = require('jsdom');
+const { JSDOM } = jsdom;
 
 module.exports = async (req, res) => {
-  const url = 'https://codebeautify.org/javascript-obfuscator';
-  const inputData = 'const contoh = \'contoh\'';
-  
   try {
-    const response = await axios.get(url, {
-      headers: {
-        'User -Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.40 Mobile Safari/537.36',
-        'Referer': url
-      }
-    });
-    
-    const dom = new JSDOM(response.data);
-    const document = dom.window.document;
-    
-    const inputElement = document.querySelector('.ace_content');
-    inputElement.textContent = inputData;
-    
-    const formData = new URLSearchParams();
-    formData.append('input', inputElement.textContent);
-    
-    const obfuscateResponse = await axios.post(url, formData.toString(), {
+    const { data } = await axios.get('https://codebeautify.org/javascript-obfuscator', {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'User -Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.40 Mobile Safari/537.36',
-        'Referer': url
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.40 Mobile Safari/537.36',
+        'Referer': 'https://codebeautify.org/javascript-obfuscator'
       }
     });
     
-    const outputDom = new JSDOM(obfuscateResponse.data);
-    const output = outputDom.window.document.querySelector('.ace_content').innerHTML;
+    const dom = new JSDOM(data);
+    const kode = req.query.kode || "const contoh = 'contoh'";
+    const elements = dom.window.document.querySelectorAll('.ace_content');
     
-    res.send(output);
+    elements.forEach(el => el.innerHTML = `<div class="ace_line">${kode}</div>`);
+    
+    res.send(dom.serialize());
   } catch (error) {
-    res.status(500).send('An Error Was Encountered');
+    res.status(500).send('Terjadi kesalahan');
   }
 };
