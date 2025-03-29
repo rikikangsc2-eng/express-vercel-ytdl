@@ -1,22 +1,13 @@
 const axios = require('axios'); const cheerio = require('cheerio');
 
-module.exports = async (req, res) => { try { const { data } = await axios.get('https://www.jadwaltv.net/jadwal-sepakbola'); const $ = cheerio.load(data); const matches = [];
+module.exports = async (req, res) => { try { const url = 'https://id.m.wikipedia.org/wiki/Special:Random'; const { data } = await axios.get(url); const $ = cheerio.load(data);
 
-$('tr.jklIv').each((_, row) => {
-        const columns = $(row).find('td');
-        if (columns.length === 4) {
-            matches.push({
-                date: $(columns[0]).text().trim(),
-                time: $(columns[1]).text().trim(),
-                match: $(columns[2]).text().trim(),
-                league: $(columns[3]).text().trim()
-            });
-        }
-    });
-
-    res.json(matches);
+const title = $('span.mw-page-title-main').text().trim();
+    const paragraph = $('p').first().text().trim();
+    
+    res.json({ title, paragraph });
 } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch data' });
+    res.status(500).json({ error: 'Gagal mengambil data' });
 }
 
 };
