@@ -1,39 +1,39 @@
 const axios = require('axios');
 const jsdom = require('jsdom');
-const { JSDOM } = jsdom;
 
 module.exports = async (req, res) => {
-  const match = req.query.match;
-  const wr = req.query.wr;
-  const url = 'https://johsteven.github.io/penghitung-wr/winlose.html';
-
   try {
-    const response = await axios.get(url);
-    const dom = new JSDOM(response.data);
-    const document = dom.window.document;
+    const initialResponse = await axios.get('https://nuelink.com/tools/ai-image-generator', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.40 Mobile Safari/537.36',
+        'Referer': 'https://nuelink.com/tools/ai-image-generator'
+      },
+      decompress: true
+    });
 
-    const matchInput = document.getElementById('tMatch');
-    const wrInput = document.getElementById('tWr');
-    const hasilButton = document.getElementById('hasil');
+    const dom = new jsdom.JSDOM(initialResponse.data);
+    const xak = dom.window.document.querySelector('script').textContent.match(/var xak = "(.*?)"/)[1];
+    const prompt = req.query.prompt || "Kitten , use Anime";
 
-    if (matchInput && wrInput && hasilButton) {
-      matchInput.value = match;
-      wrInput.value = wr;
-      hasilButton.click();
-
-      const resultTextElement = document.getElementById('resultText');
-      if (resultTextElement) {
-        const resultText = resultTextElement.innerHTML;
-        res.status(200).send(resultText);
-      } else {
-        res.status(500).send('Failed to retrieve result text.');
+    const apiResponse = await axios.post(
+      'https://tools.nuelink.com/api/ai/assist?action=IMAGE&prompt=' + encodeURIComponent(prompt),
+      { action: 'TTI', prompt: prompt },
+      {
+        headers: {
+          'Accept': 'application/json, text/plain, */*',
+          'Content-Type': 'application/json',
+          'X-Api-Key': xak,
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.40 Mobile Safari/537.36',
+          'Referer': 'https://nuelink.com/tools/ai-image-generator'
+        },
+        decompress: true
       }
-    } else {
-      res.status(500).send('Failed to find input elements or button.');
-    }
+    );
+
+    res.json(apiResponse.data);
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).send('An error occurred: ' + error.message);
+    console.error(error);
+    res.status(500).json({ error: 'An error occurred' });
   }
 };
 
