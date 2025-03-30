@@ -1,48 +1,34 @@
 const axios = require('axios');
-const { JSDOM } = require('jsdom');
+const jsdom = require('jsdom');
+const { JSDOM } = jsdom;
 
 module.exports = async (req, res) => {
     try {
-        const url = 'https://toolbaz.com/image/ai-image-generator';
-        const response = await axios.get(url, {
+        const response = await axios.get('https://otakudesu.cloud/', {
             headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
                 'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.40 Mobile Safari/537.36',
-                'Referer': 'https://toolbaz.com/image/ai-image-generator'
+                'Referer': 'https://otakudesu.cloud/'
             }
         });
-
-        const dom = new JSDOM(response.data);
-        const scriptElements = dom.window.document.querySelectorAll('script');
-        let captchaToken = '';
         
-        scriptElements.forEach(script => {
-            if (script.textContent.includes('turnstile.getResponse()')) {
-                const match = script.textContent.match(/capcha_response=turnstile\.getResponse\(\);/);
-                if (match) {
-                    captchaToken = match[0];
-                }
-            }
+        const dom = new JSDOM(response.data);
+        const document = dom.window.document;
+        
+        const animeList = [];
+        document.querySelectorAll('.detpost').forEach(item => {
+            const episode = item.querySelector('.epz')?.textContent.trim();
+            const day = item.querySelector('.epztipe')?.textContent.trim();
+            const date = item.querySelector('.newnime')?.textContent.trim();
+            const title = item.querySelector('.jdlflm')?.textContent.trim();
+            const image = item.querySelector('.thumbz img')?.getAttribute('src');
+            const link = item.querySelector('.thumb a')?.getAttribute('href');
+            
+            animeList.push({ episode, day, date, title, image, link });
         });
-
-        if (!captchaToken) {
-            return res.status(400).json({ error: 'Failed to retrieve captcha token' });
-        }
-
-        const apiResponse = await axios.post('https://data.toolbaz.com/img2.php', {
-            text: 'Girl+sad',
-            model: 'FLUX-1-schnell',
-            capcha: captchaToken,
-            size: '1024x1024'
-        }, {
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                'Accept': '*/*'
-            }
-        });
-
-        res.json(apiResponse.data);
+        
+        res.json(animeList);
     } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
+        res.status(500).json({ error: 'Failed to fetch data' });
     }
 };
