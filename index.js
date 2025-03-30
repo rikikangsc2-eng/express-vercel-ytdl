@@ -15,6 +15,7 @@ const voice = new ElevenLabs({
   voiceId: "kuOK5r8Woz6lkWaMr8kx"
 });
 
+app.get('/otakudesu',require('./otakkudesu/homepage.js'))
 app.get('/tes',test)
 
 app.get('/brats', async (req, res) => {
