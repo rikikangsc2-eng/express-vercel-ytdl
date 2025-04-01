@@ -24,7 +24,7 @@ const headers = {
     });
 
     const downloadDom = new JSDOM(postResponse.data);
-    res.send(downloadDom)
+    res.json(downloadDom)
 } catch (error) {
     res.status(500).json({ error: error.message });
 }
