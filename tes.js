@@ -18,25 +18,17 @@ module.exports = async (req, res) => {
         const dom = new JSDOM(response.data);
         const document = dom.window.document;
         
-        const getInputValue = (name) => {
-            const input = document.querySelector(`input[name="${name}"]`);
-            return input ? input.value : null;
-        };
+        const form = document.querySelector('#submit-form');
+        if (!form) return res.status(500).json({ error: 'Form tidak ditemukan' });
+        
+        const formData = new URLSearchParams();
+        document.querySelectorAll('input[type="hidden"]').forEach(input => {
+            formData.append(input.name, input.value);
+        });
+        
+        formData.append('link_url', url);
 
-        const _fix = getInputValue('_fix');
-        const _bEqyS = getInputValue('_bEqyS');
-        const verify = getInputValue('verify');
-
-        if (!_fix || !_bEqyS || !verify) {
-            return res.status(500).json({ error: 'Elemen input hidden tidak ditemukan atau berubah' });
-        }
-
-        const postResponse = await axios.post('https://musicaldown.com/id/download', new URLSearchParams({
-            _fix,
-            _bEqyS,
-            verify,
-            link_url: url
-        }), {
+        const postResponse = await axios.post('https://musicaldown.com/id/download', formData, {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36',
