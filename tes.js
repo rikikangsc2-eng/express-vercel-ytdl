@@ -37,10 +37,13 @@ module.exports = async (req, res) => {
         });
 
         const downloadDom = new JSDOM(postResponse.data);
-        const downloadLink = downloadDom.window.document.querySelector('a.btn-download')?.href;
+        const downloadLinks = Array.from(downloadDom.window.document.querySelectorAll('a.download')).map(a => ({
+            text: a.textContent.trim(),
+            href: a.href
+        }));
 
-        if (!downloadLink) return res.status(500).json({ error: 'Link unduhan tidak ditemukan' });
-        res.redirect(downloadLink);
+        if (downloadLinks.length === 0) return res.status(500).json({ error: 'Link unduhan tidak ditemukan' });
+        res.json({ downloadLinks });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
