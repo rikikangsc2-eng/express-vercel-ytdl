@@ -24,18 +24,7 @@ const headers = {
     });
 
     const downloadDom = new JSDOM(postResponse.data);
-    const downloadLinks = downloadDom.window.document.querySelectorAll('.download');
-
-    const links = {};
-    downloadLinks.forEach(link => {
-        links[link.textContent.trim()] = link.href;
-    });
-
-    if (Object.keys(links).length === 0) {
-        return res.status(500).json({ error: 'Link unduhan tidak ditemukan' });
-    }
-
-    res.json({ success: true, links });
+    res.send(donwloadDom)
 } catch (error) {
     res.status(500).json({ error: error.message });
 }
