@@ -35,15 +35,7 @@ module.exports = async (req, res) => {
                 'Referer': 'https://musicaldown.com/id'
             }
         });
-
-        const downloadDom = new JSDOM(postResponse.data);
-        const downloadLinks = Array.from(downloadDom.window.document.querySelectorAll('a.download')).map(a => ({
-            text: a.textContent.trim(),
-            href: a.href
-        }));
-
-        if (downloadLinks.length === 0) return res.status(500).json({ error: 'Link unduhan tidak ditemukan' });
-        res.json({ downloadLinks });
+        res.send(postResponse.data);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
