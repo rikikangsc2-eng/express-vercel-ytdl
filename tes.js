@@ -35,7 +35,7 @@ const dom = new JSDOM(response.data);
         res.status(500).send('Download link not found');
     }
 } catch (error) {
-    res.status(500).send('Error occurred');
+    res.status(500).send(error.message);
 }
 
 };
