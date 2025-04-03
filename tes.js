@@ -1,138 +1,94 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
+const { URLSearchParams } = require('url');
 
 module.exports = async (req, res) => {
+  const { link, text } = req.query;
+  
+  if (!link || !text) {
+    return res.json({ success: false, error: 'Missing required query parameters: link and text' });
+  }
+  
+  const defaultDeviceId = '31fe04f1-c5c9-4b40-b624-feb541551db2';
+  let deviceId = defaultDeviceId;
+  let username;
+  
   try {
-    const query = req.query.q;
-    if (!query) {
-      return res.status(400).json({ success: false, error: 'Search query parameter "q" is required' });
+    const urlObject = new URL(link);
+    username = urlObject.pathname.substring(1);
+    if (!username) {
+      throw new Error('Could not extract username from link');
+    }
+  } catch (error) {
+    return res.json({ success: false, error: `Invalid link format: ${error.message}` });
+  }
+  
+  try {
+    const getDeviceIdHeaders = {
+      'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36',
+      'Referer': link,
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+      'Sec-Ch-Ua-Mobile': '?1',
+      'Sec-Ch-Ua-Platform': '"Android"',
+      'Sec-Fetch-Dest': 'document',
+      'Sec-Fetch-Mode': 'navigate',
+      'Sec-Fetch-Site': 'same-origin',
+      'Sec-Fetch-User': '?1',
+      'Upgrade-Insecure-Requests': '1'
+    };
+    
+    const deviceIdResponse = await axios.get(link, { headers: getDeviceIdHeaders });
+    const $ = cheerio.load(deviceIdResponse.data);
+    const extractedDeviceId = $('input#deviceId').val();
+    
+    if (extractedDeviceId) {
+      deviceId = extractedDeviceId;
     }
     
-    const searchUrl = `https://open.spotify.com/search/${encodeURIComponent(query)}`;
-    const { data: html } = await axios.get(searchUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-      }
+    const submitHeaders = {
+      'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+      'Accept': '*/*',
+      'X-Requested-With': 'XMLHttpRequest',
+      'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36',
+      'Referer': link,
+      'Origin': 'https://ngl.link',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+      'Sec-Ch-Ua-Mobile': '?1',
+      'Sec-Ch-Ua-Platform': '"Android"',
+      'Sec-Fetch-Dest': 'empty',
+      'Sec-Fetch-Mode': 'cors',
+      'Sec-Fetch-Site': 'same-origin'
+    };
+    
+    const payload = new URLSearchParams({
+      username: username,
+      question: text,
+      deviceId: deviceId,
+      gameSlug: '',
+      referrer: ''
     });
     
-    const $ = cheerio.load(html);
-    const initialStateScript = $('#initial-state').html();
+    const submitResponse = await axios.post('https://ngl.link/api/submit', payload.toString(), { headers: submitHeaders });
     
-    if (!initialStateScript) {
-      return res.json({ success: false, error: 'Could not find initial state script on Spotify page. Structure might have changed.' });
-    }
-    
-    let initialState;
-    try {
-      const decodedState = Buffer.from(initialStateScript, 'base64').toString('utf8');
-      initialState = JSON.parse(decodedState);
-    } catch (parseError) {
-      return res.json({ success: false, error: 'Failed to decode or parse initial state data: ' + parseError.message });
-    }
-    
-    const searchResultsRaw = initialState?.data?.searchV2?.searchData?.data;
-    
-    if (!searchResultsRaw) {
-      return res.json({ success: false, error: 'Could not find search results within initial state data structure.' });
-    }
-    
-    const results = {
-      tracks: [],
-      artists: [],
-      albums: [],
-      playlists: [],
-      podcasts: [],
-      episodes: [],
-    };
-    
-    const processSection = (sectionData, type) => {
-      if (!sectionData?.itemsV2) return [];
-      return sectionData.itemsV2.map(itemWrapper => {
-        const itemData = itemWrapper?.item?.data;
-        if (!itemData || !itemData.uri || !itemData.name) return null;
-        
-        const uri = itemData.uri;
-        const id = uri.split(':').pop();
-        const typeName = itemData.__typename ? itemData.__typename.toLowerCase() : type;
-        
-        let extractedData = {
-          id: id,
-          type: typeName,
-          name: itemData.name,
-          uri: uri,
-          link: `https://open.spotify.com/${typeName}/${id}`,
-          image: null
-        };
-        
-        let sources = null;
-        if (itemData.albumOfTrack?.coverArt?.sources) {
-          sources = itemData.albumOfTrack.coverArt.sources;
-        } else if (itemData.coverArt?.sources) {
-          sources = itemData.coverArt.sources;
-        } else if (itemData.visuals?.avatarImage?.sources) {
-          sources = itemData.visuals.avatarImage.sources;
-        } else if (itemData.coverArtV2?.sources) { // Podcasts/Episodes might use this
-          sources = itemData.coverArtV2.sources;
-        }
-        
-        if (sources && sources.length > 0) {
-          extractedData.image = sources.sort((a, b) => b.width - a.width)[0].url; // Get largest image
-        }
-        
-        
-        if (typeName === 'track' && itemData.artists?.items) {
-          extractedData.artists = itemData.artists.items.map(a => ({ name: a.profile?.name, id: a.uri?.split(':').pop(), link: `https://open.spotify.com/artist/${a.uri?.split(':').pop()}` })).filter(a => a.id && a.name);
-          extractedData.album = { name: itemData.albumOfTrack?.name, id: itemData.albumOfTrack?.uri?.split(':').pop(), link: `https://open.spotify.com/album/${itemData.albumOfTrack?.uri?.split(':').pop()}` };
-        } else if (typeName === 'album' && itemData.artists?.items) {
-          extractedData.artists = itemData.artists.items.map(a => ({ name: a.profile?.name, id: a.uri?.split(':').pop(), link: `https://open.spotify.com/artist/${a.uri?.split(':').pop()}` })).filter(a => a.id && a.name);
-        } else if (typeName === 'playlist' && itemData.ownerV2?.data) {
-          extractedData.owner = { name: itemData.ownerV2.data.name };
-        } else if (typeName === 'podcast' && itemData.publisher?.name) {
-          extractedData.publisher = itemData.publisher.name;
-        } else if (typeName === 'episode' && itemData.podcastV2?.data) {
-          extractedData.podcast = { name: itemData.podcastV2.data.name, id: itemData.podcastV2.data.uri?.split(':').pop(), link: `https://open.spotify.com/show/${itemData.podcastV2.data.uri?.split(':').pop()}` };
-          extractedData.releaseDate = itemData.releaseDate?.isoString;
-          extractedData.duration = itemData.duration?.totalMilliseconds;
-        }
-        
-        
-        return extractedData;
-      }).filter(item => item !== null);
-    };
-    
-    results.tracks = processSection(searchResultsRaw.tracks, 'track');
-    results.artists = processSection(searchResultsRaw.artists, 'artist');
-    results.albums = processSection(searchResultsRaw.albums, 'album');
-    results.playlists = processSection(searchResultsRaw.playlists, 'playlist');
-    results.podcasts = processSection(searchResultsRaw.podcasts, 'show'); // Spotify API often refers to podcasts as 'show'
-    results.episodes = processSection(searchResultsRaw.episodes, 'episode');
-    
-    // Optionally extract top result if needed
-    const topResultItem = searchResultsRaw.topResults?.itemsV2?.[0]?.item?.data;
-    if (topResultItem) {
-      const topResultProcessed = processSection({ itemsV2: [{ item: { data: topResultItem } }] }, topResultItem.__typename?.toLowerCase() || 'unknown');
-      if (topResultProcessed.length > 0) {
-        results.topResult = topResultProcessed[0];
-      }
-    }
-    
-    
-    res.json({ success: true, data: results });
+    res.json({ success: true, data: submitResponse.data });
     
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      if (error.response) {
-        res.status(error.response.status).json({ success: false, error: `Spotify request failed: ${error.response.status} ${error.response.statusText}` });
-      } else if (error.request) {
-        res.status(504).json({ success: false, error: 'Spotify request made but no response received' });
-      } else {
-        res.status(500).json({ success: false, error: `Axios error: ${error.message}` });
+    let errorMessage = error.message;
+    if (error.response) {
+      errorMessage = `NGL API Error: ${error.response.status} ${error.response.statusText}`;
+      if (error.response.data && typeof error.response.data === 'object') {
+        errorMessage += ` - ${JSON.stringify(error.response.data)}`;
+      } else if (error.response.data) {
+        errorMessage += ` - ${error.response.data}`;
       }
+    } else if (error.request) {
+      errorMessage = 'No response received from NGL server.';
     }
-    else {
-      res.status(500).json({ success: false, error: `Server error: ${error.message}` });
-    }
+    res.json({ success: false, error: errorMessage });
   }
 };
