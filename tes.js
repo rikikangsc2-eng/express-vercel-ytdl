@@ -1,81 +1,67 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
-const querystring = require('querystring');
 
 module.exports = async (req, res) => {
   try {
-    const { html, format = 'jpg', width = 1024, autoHeight = true, readability = true, blockAds = true } = req.query;
+    const targetUrl = req.query.url || req.body.url || 'https://nirkyy.koyeb.app';
     
-    if (!html) {
-      return res.json({ success: false, error: 'Parameter "html" diperlukan' });
-    }
-    
-    const initialUrl = 'https://pdfcrowd.com/html-to-image/#convert_by_input';
-    const headers = {
-      'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36',
-      'Referer': initialUrl
-    };
-    
-    const initialResponse = await axios.get(initialUrl, { headers });
-    const $initial = cheerio.load(initialResponse.data);
-    
-    const csrfToken = $initial('input[name="csrfmiddlewaretoken"]').val();
-    const ias = $initial('input[name="ias"]').val();
-    
-    if (!csrfToken || !ias) {
-      return res.json({ success: false, error: 'Gagal mengambil token CSRF atau IAS dari halaman awal.' });
-    }
-    
-    const postData = {
-      csrfmiddlewaretoken: csrfToken,
-      conversion_source: 'content',
-      src: html,
-      output_format: format,
-      img_screenshot_width: width,
-      img_auto_height: autoHeight ? 'on' : '',
-      img_readability_enhancements: readability ? 'on' : '',
-      img_block_ads: blockAds ? 'on' : '',
-      ias: ias,
-      _dontcare: ''
-    };
-    
-    const postHeaders = {
-      ...headers,
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'X-Requested-With': 'XMLHttpRequest', // Pdfcrowd sering menggunakan ini untuk AJAX
-      'Accept': 'text/html, */*; q=0.01', // Header Accept yang umum untuk XHR
-      'Origin': 'https://pdfcrowd.com',
-    };
-    
-    const convertUrl = 'https://pdfcrowd.com/form/pdf/convert/content/'; // Sesuaikan URL berdasarkan sumber input
-    
-    const convertResponse = await axios.post(convertUrl, querystring.stringify(postData), { headers: postHeaders });
-    
-    const $result = cheerio.load(convertResponse.data);
-    
-    const downloadLink = $result('.result-download').attr('href');
-    const errorDetail = $result('.conv-error-pane .error-detail').text().trim();
-    
-    if (errorDetail) {
-      return res.json({ success: false, error: `Pdfcrowd Error: ${errorDetail}` });
-    }
-    
-    if (downloadLink) {
-      const fullDownloadUrl = `https://pdfcrowd.com${downloadLink}`;
-      res.json({ success: true, data: { downloadUrl: fullDownloadUrl } });
-    } else {
-      const progressVisible = $result('.conv-in-progress-pane').css('display') !== 'none';
-      if (progressVisible) {
-        return res.json({ success: false, error: 'Konversi masih berlangsung atau gagal memuat hasil. Coba lagi.' });
+    const initialResponse = await axios.get('https://pdfcrowd.com/html-to-image/', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36',
+        'Referer': 'https://pdfcrowd.com/html-to-image/'
       }
-      return res.json({ success: false, error: 'Gagal menemukan tautan unduhan dalam respons.' });
+    });
+    
+    const $ = cheerio.load(initialResponse.data);
+    const csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
+    const iasValue = $('input[name="ias"]').val();
+    
+    if (!csrfToken) {
+      throw new Error('CSRF token not found');
     }
+    if (iasValue === undefined || iasValue === null) {
+      throw new Error('IAS value not found');
+    }
+    
+    
+    const payload = {
+      "csrfmiddlewaretoken": csrfToken,
+      "conversion_source": "uri",
+      "src": targetUrl,
+      "output_format": "jpg",
+      "img_screenshot_width": "1024",
+      "img_auto_height": "on",
+      "img_block_ads": "on",
+      "img_enable_remove_zindex": "off",
+      "img_main_content_only": "off",
+      "img_readability_enhancements": "on",
+      "_dontcare": "",
+      "ias": iasValue
+    };
+    
+    const convertResponse = await axios.post('https://pdfcrowd.com/form/json/convert/uri/v2/', payload, {
+      headers: {
+        'Accept': 'application/json, text/javascript, */*; q=0.01',
+        'X-Requested-With': 'XMLHttpRequest',
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36',
+        'Referer': 'https://pdfcrowd.com/html-to-image/',
+        'Content-Type': 'application/json' // Based on the example payload structure
+      }
+    });
+    
+    if (convertResponse.data && convertResponse.data.uri) {
+      convertResponse.data.result_url = `https://pdfcrowd.com${convertResponse.data.uri}`;
+      convertResponse.data.result_inline_url = `https://pdfcrowd.com${convertResponse.data.inline_uri}`;
+    }
+    
+    
+    res.json({ success: true, data: convertResponse.data });
     
   } catch (error) {
     let errorMessage = error.message;
     if (error.response) {
-      errorMessage = `Error ${error.response.status}: ${error.response.statusText}. ${error.message}`;
+      errorMessage = `Status: ${error.response.status}, Data: ${JSON.stringify(error.response.data)}`;
     }
-    res.status(error.response?.status || 500).json({ success: false, error: errorMessage });
+    res.json({ success: false, error: errorMessage });
   }
 };
