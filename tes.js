@@ -9,7 +9,7 @@ module.exports = async (req, res) => {
     return res.json({ success: false, error: 'Missing required query parameters: link and text' });
   }
   
-  const defaultDeviceId = '31fe04f1-c5c9-4b40-b624-feb541551db2';
+  const defaultDeviceId = '';
   let deviceId = defaultDeviceId;
   let username;
   
