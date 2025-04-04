@@ -1,15 +1,21 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
+const { Buffer } = require('buffer');
 
 module.exports = async (req, res) => {
   try {
-    const { query } = req.query;
+    const { url: youtubeUrl } = req.query;
     
-    if (!query) {
-      return res.json({ success: false, error: "Parameter 'query' diperlukan" });
+    if (!youtubeUrl) {
+      return res.json({ success: false, error: "Parameter 'url' diperlukan" });
+    }
+    
+    if (!/^https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)/.test(youtubeUrl)) {
+      return res.json({ success: false, error: "Parameter 'url' harus berupa URL YouTube yang valid" });
     }
     
     const initialUrl = 'https://ytmp3.ing/';
+    const audioUrl = 'https://ytmp3.ing/audio';
     const userAgent = 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36';
     
     const initialResponse = await axios.get(initialUrl, {
@@ -34,47 +40,45 @@ module.exports = async (req, res) => {
       cookieString = cookies.map(cookie => cookie.split(';')[0]).join('; ');
     }
     
-    const videoUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
-    const searchPage = await axios.get(videoUrl, { headers: { 'User-Agent': userAgent } });
-    const $search = cheerio.load(searchPage.data);
-    const firstVideo = $search('a#video-title').first().attr('href');
+    const payload = { url: youtubeUrl };
     
-    if (!firstVideo) {
-      return res.json({ success: false, error: "Video tidak ditemukan" });
-    }
-    
-    const payload = {
-      url: `https://www.youtube.com${firstVideo}`
-    };
-    
-    const audioResponse = await axios.post('https://ytmp3.ing/audio', payload, {
+    const audioResponse = await axios.post(audioUrl, payload, {
       headers: {
         'Content-Type': 'application/json',
         'X-CSRFToken': csrfToken,
         'User-Agent': userAgent,
         'Referer': initialUrl,
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept': '*/*',
         'Origin': 'https://ytmp3.ing',
         'Cookie': cookieString
-      }
+      },
+      responseType: 'json'
     });
     
-    const { url, filename } = audioResponse.data;
+    if (!audioResponse.data || !audioResponse.data.url || !audioResponse.data.filename) {
+      return res.json({ success: false, error: "Respons tidak valid dari API audio" });
+    }
     
-    res.json({
-      success: true,
-      data: {
-        url: Buffer.from(url, 'base64').toString('utf-8'),
-        filename
-      }
-    });
+    const encodedUrl = audioResponse.data.url;
+    const filename = audioResponse.data.filename;
+    
+    const decodedUrl = Buffer.from(encodedUrl, 'base64').toString('utf-8');
+    
+    res.json({ success: true, data: { decodedUrl, filename } });
     
   } catch (error) {
     let errorMessage = error.message;
     if (error.response) {
-      errorMessage = `Error ${error.response.status}: ${error.response.statusText}`;
+      errorMessage = `Error ${error.response.status}: ${error.response.statusText || 'Gagal mengambil data'}`;
+      if (error.response.data && typeof error.response.data === 'object') {
+        errorMessage += ` - ${JSON.stringify(error.response.data)}`;
+      } else if (error.response.data) {
+        errorMessage += ` - ${error.response.data}`;
+      }
     } else if (error.request) {
       errorMessage = "Tidak ada respons dari server";
     }
-    res.json({ success: false, error: errorMessage });
+    res.status(500).json({ success: false, error: errorMessage });
   }
 };
