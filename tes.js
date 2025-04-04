@@ -1,23 +1,39 @@
 const axios = require('axios'); const jsdom = require('jsdom'); const { JSDOM } = jsdom;
 
-module.exports = async (req, res) => { try { const url = 'https://y2meta.tube/id1/'; const headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36', 'Referer': url };
+module.exports = async (req, res) => { try { const url = req.query.url; if (!url) { return res.json({ error: 'Missing URL parameter' }); }
 
-const response = await axios.get(url, { headers });
+const response = await axios.get('https://edunity.fr/', {
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36',
+            'Referer': 'https://edunity.fr/'
+        },
+        withCredentials: true
+    });
+
+    const cookies = response.headers['set-cookie'];
     const dom = new JSDOM(response.data);
-    const form = dom.window.document.querySelector('#search-form');
-    
+    const form = dom.window.document.querySelector('form.search-form');
     if (!form) {
-        return res.json({ error: 'Form not found on the page' });
+        return res.json({ error: 'Form not found' });
     }
-    
-    const formAction = form.action;
-    const postUrl = new URL(formAction, url).href;
-    
-    const postData = new URLSearchParams();
-    postData.append('query', 'https://youtu.be/-ktlIHSOOmk?si=fLKNk60e2dM4Dpdz');
-    
-    const postResponse = await axios.post(postUrl, postData.toString(), { headers });
-    
+
+    const formAction = form.getAttribute('action');
+    if (!formAction) {
+        return res.json({ error: 'Form action not found' });
+    }
+
+    const postUrl = new URL(formAction, 'https://edunity.fr/').href;
+    const postResponse = await axios.post(postUrl, `q=${encodeURIComponent(url)}`, {
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36',
+            'Referer': 'https://edunity.fr/',
+            'Cookie': cookies.join('; ')
+        },
+        withCredentials: true
+    });
+
     res.send(postResponse.data);
 } catch (error) {
     res.json({ error: error.message });
