@@ -40,21 +40,22 @@ module.exports = async (req, res) => {
       cookieString = cookies.map(cookie => cookie.split(';')[0]).join('; ');
     }
     
-    const payload = { url: youtubeUrl };
-    
-    const audioResponse = await axios.post(audioUrl, payload, {
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': csrfToken,
-        'User-Agent': userAgent,
-        'Referer': initialUrl,
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Accept': '*/*',
-        'Origin': 'https://ytmp3.ing',
-        'Cookie': cookieString
-      },
-      responseType: 'json'
-    });
+    const payload = new URLSearchParams();
+payload.append('url', youtubeUrl);
+
+const audioResponse = await axios.post(audioUrl, payload.toString(), {
+  headers: {
+    'Content-Type': 'application/x-www-form-urlencoded',
+    'X-CSRFToken': csrfToken,
+    'User-Agent': userAgent,
+    'Referer': initialUrl,
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Accept': '*/*',
+    'Origin': 'https://ytmp3.ing',
+    'Cookie': cookieString
+  },
+  responseType: 'json'
+});
     
     if (!audioResponse.data || !audioResponse.data.url || !audioResponse.data.filename) {
       return res.json({ success: false, error: "Respons tidak valid dari API audio" });
