@@ -1,34 +1,24 @@
-const axios = require('axios');
-const querystring = require('querystring');
+const axios = require('axios'); const jsdom = require('jsdom'); const { JSDOM } = jsdom;
 
-module.exports = async (req, res) => {
-  try {
-    const targetUrl = 'https://id.ytmp3.mobi/v2/';
-    const videoUrl = 'https://youtu.be/-ktlIHSOOmk?si=fLKNk60e2dM4Dpdz';
+module.exports = async (req, res) => { try { const url = 'https://id.ytmp3.mobi/v2/'; const headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36', 'Referer': url };
+
+const { data } = await axios.get(url, { headers });
+    const dom = new JSDOM(data);
+    const form = dom.window.document.querySelector('form');
     
-    const postData = querystring.stringify({
-      video: videoUrl
-    });
-    
-    const headers = {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36',
-      'Referer': 'https://id.ytmp3.mobi/v2/'
-    };
-    
-    const response = await axios.post(targetUrl, postData, {
-      headers: headers
-    });
-    
-    res.send(response.data);
-    
-  } catch (error) {
-    if (error.response) {
-      res.status(error.response.status).send(error.response.data);
-    } else {
-      const errorMessage = error.message || 'An unknown error occurred';
-      const statusCode = error.code === 'ECONNREFUSED' ? 503 : (error.response ? error.response.status : 500);
-      res.status(statusCode).json({ success: false, error: errorMessage });
+    if (!form) {
+        return res.json({ error: 'Form not found' });
     }
-  }
+    
+    const formData = new URLSearchParams();
+    formData.append('video', 'https://youtu.be/-ktlIHSOOmk?si=fLKNk60e2dM4Dpdz');
+    
+    const response = await axios.post(url, formData, { headers });
+    
+    return res.json({ success: true, data: response.data });
+} catch (error) {
+    return res.json({ error: error.message });
+}
+
 };
+
