@@ -1,94 +1,89 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
-const { URLSearchParams } = require('url');
 
 module.exports = async (req, res) => {
-  const { link, text } = req.query;
-  
-  if (!link || !text) {
-    return res.json({ success: false, error: 'Missing required query parameters: link and text' });
-  }
-  
-  const defaultDeviceId = '';
-  let deviceId = defaultDeviceId;
-  let username;
-  
   try {
-    const urlObject = new URL(link);
-    username = urlObject.pathname.substring(1);
-    if (!username) {
-      throw new Error('Could not extract username from link');
-    }
-  } catch (error) {
-    return res.json({ success: false, error: `Invalid link format: ${error.message}` });
-  }
-  
-  try {
-    const getDeviceIdHeaders = {
+    const initialUrl = 'https://samehadaku.care/';
+    const headers = {
+      'Content-Type': 'application/x-www-form-urlencoded',
       'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36',
-      'Referer': link,
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-      'Accept-Encoding': 'gzip, deflate, br',
-      'Accept-Language': 'en-US,en;q=0.9',
-      'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-      'Sec-Ch-Ua-Mobile': '?1',
-      'Sec-Ch-Ua-Platform': '"Android"',
-      'Sec-Fetch-Dest': 'document',
-      'Sec-Fetch-Mode': 'navigate',
-      'Sec-Fetch-Site': 'same-origin',
-      'Sec-Fetch-User': '?1',
-      'Upgrade-Insecure-Requests': '1'
+      'Referer': initialUrl,
+      'Accept-Encoding': 'gzip, deflate, br', // Added for --compressed equivalent
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7'
     };
     
-    const deviceIdResponse = await axios.get(link, { headers: getDeviceIdHeaders });
-    const $ = cheerio.load(deviceIdResponse.data);
-    const extractedDeviceId = $('input#deviceId').val();
+    const initialResponse = await axios.get(initialUrl, { headers });
+    let $ = cheerio.load(initialResponse.data);
     
-    if (extractedDeviceId) {
-      deviceId = extractedDeviceId;
+    let baseDomain = '';
+    const logoLinkElement = $('a > img[src*="Samehadaku-Logo.png"]').parent();
+    
+    if (logoLinkElement.length > 0) {
+      baseDomain = logoLinkElement.attr('href');
+    } else {
+      // Fallback attempt if the structure changes slightly, check redirects
+      if (initialResponse.request.res.responseUrl && initialResponse.request.res.responseUrl !== initialUrl) {
+        const urlObject = new URL(initialResponse.request.res.responseUrl);
+        baseDomain = `${urlObject.protocol}//${urlObject.hostname}`;
+      } else {
+        // Try finding any link pointing to a potential samehadaku domain if logo method fails
+        $('a[href*="samehadaku."]').each((i, el) => {
+          const potentialDomain = $(el).attr('href');
+          if (potentialDomain && potentialDomain.startsWith('https://')) {
+            try {
+              const urlObject = new URL(potentialDomain);
+              if (urlObject.hostname.includes('samehadaku')) {
+                baseDomain = `${urlObject.protocol}//${urlObject.hostname}`;
+                return false; // Stop iteration
+              }
+            } catch (e) {
+              // Ignore invalid URLs
+            }
+          }
+        });
+      }
     }
     
-    const submitHeaders = {
-      'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-      'Accept': '*/*',
-      'X-Requested-With': 'XMLHttpRequest',
-      'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36',
-      'Referer': link,
-      'Origin': 'https://ngl.link',
-      'Accept-Encoding': 'gzip, deflate, br',
-      'Accept-Language': 'en-US,en;q=0.9',
-      'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-      'Sec-Ch-Ua-Mobile': '?1',
-      'Sec-Ch-Ua-Platform': '"Android"',
-      'Sec-Fetch-Dest': 'empty',
-      'Sec-Fetch-Mode': 'cors',
-      'Sec-Fetch-Site': 'same-origin'
-    };
     
-    const payload = new URLSearchParams({
-      username: username,
-      question: text,
-      deviceId: deviceId,
-      gameSlug: '',
-      referrer: ''
+    if (!baseDomain || !baseDomain.startsWith('http')) {
+      throw new Error('Could not determine the base domain from ' + initialUrl);
+    }
+    
+    // Ensure baseDomain doesn't end with a slash for consistency
+    if (baseDomain.endsWith('/')) {
+      baseDomain = baseDomain.slice(0, -1);
+    }
+    
+    
+    const targetUrl = `${baseDomain}/anime-terbaru/`;
+    headers.Referer = targetUrl; // Update Referer
+    
+    const animeResponse = await axios.get(targetUrl, { headers });
+    $ = cheerio.load(animeResponse.data);
+    
+    const animeList = [];
+    $('ul li[itemscope][itemtype="http://schema.org/CreativeWork"]').each((index, element) => {
+      const titleElement = $(element).find('.dtla h2.entry-title a');
+      const title = titleElement.attr('title') || titleElement.text();
+      const link = titleElement.attr('href');
+      const image = $(element).find('.thumb a img.npws').attr('src');
+      const episode = $(element).find('.dtla span:contains("Episode") author').text().trim();
+      const released = $(element).find('.dtla span:contains("Released on")').text().replace('Released on:', '').trim();
+      
+      if (title && link && image && episode && released) {
+        animeList.push({
+          title,
+          link,
+          image,
+          episode,
+          released,
+        });
+      }
     });
     
-    const submitResponse = await axios.post('https://ngl.link/api/submit', payload.toString(), { headers: submitHeaders });
-    
-    res.json({ success: true, data: submitResponse.data });
+    res.json({ success: true, data: animeList });
     
   } catch (error) {
-    let errorMessage = error.message;
-    if (error.response) {
-      errorMessage = `NGL API Error: ${error.response.status} ${error.response.statusText}`;
-      if (error.response.data && typeof error.response.data === 'object') {
-        errorMessage += ` - ${JSON.stringify(error.response.data)}`;
-      } else if (error.response.data) {
-        errorMessage += ` - ${error.response.data}`;
-      }
-    } else if (error.request) {
-      errorMessage = 'No response received from NGL server.';
-    }
-    res.json({ success: false, error: errorMessage });
+    res.json({ success: false, error: error.message });
   }
 };
