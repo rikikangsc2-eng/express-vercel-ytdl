@@ -38,7 +38,7 @@ const response = await axios.get('https://edunity.fr/', {
         return res.json({ error: 'MP3 iframe not found' });
     }
 
-    res.send({ iframe: iframe.outerHTML });
+    res.send({ url: iframe.src });
 } catch (error) {
     res.json({ error: error.message });
 }
