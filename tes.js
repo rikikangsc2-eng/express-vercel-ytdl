@@ -52,7 +52,12 @@ module.exports = async (req, res) => {
       }
     });
     
-    res.json({ success: true, data: searchResponse.data });
+    const processedData = searchResponse.data.map(item => ({
+      ...item,
+      url: `https://www.youtube.com${item.url_suffix}`
+    }));
+    
+    res.json({ success: true, data: processedData });
     
   } catch (error) {
     let errorMessage = error.message;
