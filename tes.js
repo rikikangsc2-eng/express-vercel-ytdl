@@ -1,169 +1,86 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
-const { URL } = require('url'); // Built-in Node.js module
-
-const fetchDownloadUrl = async (id, tS, tH, cfToken) => {
-  try {
-    const apiUrl = 'https://mp3api-d.ytjar.info/dl';
-    const response = await axios.get(apiUrl, {
-      params: {
-        id: id,
-        s: tS,
-        h: tH,
-        t: '0'
-      },
-      headers: {
-        'X-CFTOKEN': cfToken || '', // Pass token, even if null/placeholder
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36',
-        'Accept': '*/*',
-        'Referer': `https://mp3api.ytjar.info/iframe/?vid=${id}` // Example referer, might need adjustment
-      }
-    });
-    
-    const data = response.data;
-    
-    if (data.status === 'ok') {
-      return data.link;
-    } else if (data.status === 'processing') {
-      await new Promise(resolve => setTimeout(resolve, 2500)); // Wait slightly longer
-      const nextCfToken = cfToken && cfToken.endsWith('.PROGRESS') ? cfToken : (cfToken || '') + ".PROGRESS";
-      return await fetchDownloadUrl(id, tS, tH, nextCfToken);
-    } else if (data.status === "fail" && data.msg === "Invalid Token") {
-      throw new Error('Invalid Cloudflare Token provided to API');
-    } else {
-      throw new Error(data.msg || 'API returned status "fail" or unknown status');
-    }
-  } catch (error) {
-    let message = `API request failed: ${error.message}`;
-    if (error.response && error.response.data && error.response.data.msg) {
-      message += ` - API Message: ${error.response.data.msg}`;
-    } else if (error.response && error.response.status) {
-      message += ` - Status: ${error.response.status}`;
-    }
-    throw new Error(message);
-  }
-};
-
+const { URLSearchParams } = require('url');
 
 module.exports = async (req, res) => {
   try {
-    const url = req.query.url;
-    if (!url) {
-      return res.json({ success: false, error: 'Missing URL parameter' });
+    const { query } = req.query;
+    
+    if (!query) {
+      return res.status(400).json({ success: false, error: 'Parameter query diperlukan' });
     }
     
-    const baseHeaders = {
-      'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36',
-      'Referer': 'https://edunity.fr/'
-    };
+    const baseUrl = 'https://ytmp3.ing/';
+    const searchUrl = `${baseUrl}search`;
     
-    const initialResponse = await axios.get('https://edunity.fr/', { headers: baseHeaders });
-    
-    const $initial = cheerio.load(initialResponse.data);
-    const form = $initial('form.search-form');
-    if (!form.length) {
-      return res.json({ success: false, error: 'Search form not found on initial page' });
-    }
-    
-    const formAction = form.attr('action');
-    if (!formAction) {
-      return res.json({ success: false, error: 'Search form action not found' });
-    }
-    
-    const postUrl = new URL(formAction, 'https://edunity.fr/').href;
-    const postResponse = await axios.post(postUrl, `q=${encodeURIComponent(url)}`, {
+    const getResponse = await axios.get(baseUrl, {
       headers: {
-        ...baseHeaders,
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36',
+        'Referer': baseUrl,
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+        'Accept-Encoding': 'gzip, deflate, br, zstd',
+        'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'same-origin',
+        'Sec-Fetch-User': '?1'
+      }
+    });
+    
+    const $ = cheerio.load(getResponse.data);
+    const csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
+    
+    if (!csrfToken) {
+      return res.status(500).json({ success: false, error: 'Tidak dapat menemukan csrfmiddlewaretoken' });
+    }
+    
+    const payload = new URLSearchParams();
+    payload.append('csrfmiddlewaretoken', csrfToken);
+    payload.append('query', query);
+    
+    const postResponse = await axios.post(searchUrl, payload, {
+      headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Referer': 'https://edunity.fr/' // Referer for the POST is the initial page
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36',
+        'Referer': baseUrl,
+        'Accept': 'application/json, text/javascript, */*; q=0.01', // Target API biasanya JSON
+        'Accept-Encoding': 'gzip, deflate, br, zstd',
+        'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Origin': baseUrl.slice(0, -1), // Hapus trailing slash
+        'X-Requested-With': 'XMLHttpRequest',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        // Cookie mungkin diperlukan, diambil dari getResponse headers 'set-cookie'
+        'Cookie': getResponse.headers['set-cookie'] ? getResponse.headers['set-cookie'].map(cookie => cookie.split(';')[0]).join('; ') : ''
       }
     });
     
-    const $post = cheerio.load(postResponse.data);
-    const iframe = $post('iframe[src*="mp3"]');
-    
-    if (!iframe.length || !iframe.attr('src')) {
-      return res.json({ success: false, error: 'MP3 iframe element or src not found in search results' });
-    }
-    
-    const iframeUrl = iframe.attr('src');
-    if (!iframeUrl.startsWith('http')) {
-      // Handle relative iframe URLs if necessary, though seems unlikely here
-      return res.json({ success: false, error: `Invalid iframe src found: ${iframeUrl}` });
-    }
-    
-    
-    const iframeResponse = await axios.get(iframeUrl, {
-      headers: {
-        ...baseHeaders,
-        'Referer': postUrl // Referer is the page containing the iframe
-      }
-    });
-    const iframeHtml = iframeResponse.data;
-    const $iframe = cheerio.load(iframeHtml);
-    
-    const cfTokenInput = $iframe('input[name="cf-turnstile-response"]');
-    
-    if (!cfTokenInput.length) {
-      return res.json({ success: false, error: 'Cloudflare token input element (cf-turnstile-response) not found in iframe HTML.' });
-    }
-    
-    const cfTokenStaticValue = cfTokenInput.val() || null; // Get static value, likely placeholder
-    
-    let videoId = null;
-    let tS = null;
-    let tH = null;
-    
-    $iframe('script').each((index, element) => {
-      const scriptContent = $iframe(element).html();
-      if (scriptContent) {
-        if (!videoId) {
-          const videoIdMatch = scriptContent.match(/mp3Conversion\s*\(\s*['"]([^'"]+)['"]/);
-          if (videoIdMatch && videoIdMatch[1]) {
-            videoId = videoIdMatch[1];
-          }
-        }
-        if (!tS) {
-          const tsMatch = scriptContent.match(/(?:window\.|var\s+)tS\s*=\s*['"]([^'"]+)['"]/);
-          if (tsMatch && tsMatch[1]) {
-            tS = tsMatch[1];
-          }
-        }
-        if (!tH) {
-          const thMatch = scriptContent.match(/(?:window\.|var\s+)tH\s*=\s*['"]([^'"]+)['"]/);
-          if (thMatch && thMatch[1]) {
-            tH = thMatch[1];
-          }
-        }
-      }
-    });
-    
-    if (!videoId || tS === null || tH === null) { // Check for null explicitly as they might be empty strings
-      const missing = [];
-      if (!videoId) missing.push('videoId');
-      if (tS === null) missing.push('tS');
-      if (tH === null) missing.push('tH');
-      return res.json({ success: false, error: `Could not extract required parameters (${missing.join(', ')}) from iframe script using static analysis.` });
-    }
-    
-    try {
-      const downloadUrl = await fetchDownloadUrl(videoId, tS, tH, cfTokenStaticValue);
-      res.json({ success: true, data: { downloadUrl: downloadUrl } });
-    } catch (apiError) {
-      let errorMessage = `API call failed: ${apiError.message}.`;
-      if (apiError.message.includes('Invalid Token') || apiError.message.includes('Cloudflare')) {
-        errorMessage += " This usually means the Cloudflare Turnstile challenge could not be solved by static scraping.";
-      }
-      res.json({ success: false, error: errorMessage });
-    }
+    res.json({ success: true, data: postResponse.data });
     
   } catch (error) {
-    let detailedError = `General error: ${error.message}`;
+    let statusCode = 500;
+    let errorMessage = error.message;
+    
     if (error.response) {
-      detailedError += ` (Status: ${error.response.status})`;
+      statusCode = error.response.status || 500;
+      errorMessage = `Error ${statusCode}: ${error.response.statusText || 'Kesalahan Server Internal'}`;
+      // Anda bisa menambahkan detail dari error.response.data jika perlu untuk debugging internal
+      // Jangan ekspos detail sensitif ke klien
+      if (typeof error.response.data === 'string' && error.response.data.length < 500) { // Batasi panjang pesan
+        errorMessage += ` - ${error.response.data}`;
+      } else if (typeof error.response.data?.error === 'string') {
+        errorMessage += ` - ${error.response.data.error}`;
+      }
+      
     } else if (error.request) {
-      detailedError += ` (No response received)`;
+      errorMessage = 'Tidak ada respons dari server setelah melakukan request.';
+      statusCode = 504; // Gateway Timeout
+    } else {
+      errorMessage = `Kesalahan saat menyiapkan request: ${error.message}`;
     }
-    res.json({ success: false, error: detailedError });
+    
+    res.status(statusCode).json({ success: false, error: errorMessage });
   }
 };
