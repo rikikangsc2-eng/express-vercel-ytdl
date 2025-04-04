@@ -2,17 +2,18 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 
 module.exports = async (req, res) => {
+  const commonHeaders = {
+    'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7'
+  };
+  
   try {
     const detailUrl = req.query.detail;
+    const streamUrl = req.query.stream;
     
     if (detailUrl) {
-      const headers = {
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36',
-        'Referer': detailUrl,
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7'
-      };
-      
+      const headers = { ...commonHeaders, 'Referer': detailUrl };
       const response = await axios.get(detailUrl, { headers });
       const $ = cheerio.load(response.data);
       
@@ -36,7 +37,7 @@ module.exports = async (req, res) => {
           } else {
             details[key] = valueText;
           }
-        } else if (spanText.includes(':')) { 
+        } else if (spanText.includes(':')) {
           const parts = spanText.split(':');
           if (parts.length > 1) {
             const key = parts[0].toLowerCase().trim();
@@ -62,17 +63,24 @@ module.exports = async (req, res) => {
         }
       });
       
-      
       res.json({ success: true, data: { details, episodes } });
+      
+    } else if (streamUrl) {
+      const headers = { ...commonHeaders, 'Referer': streamUrl }; // Using streamUrl as Referer might be needed
+      const response = await axios.get(streamUrl, { headers });
+      const $ = cheerio.load(response.data);
+      
+      const iframeSrc = $('#player_embed .pframe iframe').attr('src');
+      
+      if (iframeSrc) {
+        res.json({ success: true, data: { streamUrl: iframeSrc } });
+      } else {
+        res.json({ success: false, error: 'Stream iframe source not found' });
+      }
       
     } else {
       const initialUrl = 'https://samehadaku.care/';
-      const headers = {
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36',
-        'Referer': initialUrl,
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7'
-      };
+      let headers = { ...commonHeaders, 'Referer': initialUrl };
       
       const initialResponse = await axios.get(initialUrl, { headers, timeout: 15000 });
       let $ = cheerio.load(initialResponse.data);
@@ -83,10 +91,16 @@ module.exports = async (req, res) => {
       if (logoLinkElement.length > 0) {
         baseDomain = logoLinkElement.attr('href');
       } else {
-        if (initialResponse.request?.res?.responseUrl && initialResponse.request.res.responseUrl !== initialUrl) {
-          const urlObject = new URL(initialResponse.request.res.responseUrl);
-          baseDomain = `${urlObject.protocol}//${urlObject.hostname}`;
-        } else {
+        const responseUrl = initialResponse.request?.res?.responseUrl;
+        if (responseUrl && responseUrl !== initialUrl) {
+          try {
+            const urlObject = new URL(responseUrl);
+            baseDomain = `${urlObject.protocol}//${urlObject.hostname}`;
+          } catch (e) {
+            // ignore parse error
+          }
+        }
+        if (!baseDomain || !baseDomain.startsWith('http')) {
           $('a[href*="samehadaku."]').each((i, el) => {
             const potentialDomain = $(el).attr('href');
             if (potentialDomain && potentialDomain.startsWith('https://')) {
@@ -110,10 +124,10 @@ module.exports = async (req, res) => {
           const urlObject = new URL(initialResponse.request?.res?.responseUrl || initialUrl);
           baseDomain = `${urlObject.protocol}//${urlObject.hostname}`;
         } catch (e) {
-          throw new Error('Could not determine the base domain from ' + initialUrl + ' and response URL.');
+          throw new Error(`Could not determine the base domain from ${initialUrl} or response URL: ${initialResponse.request?.res?.responseUrl}`);
         }
         if (!baseDomain || !baseDomain.startsWith('http')) {
-          throw new Error('Could not determine the base domain from ' + initialUrl);
+          throw new Error(`Could not determine the base domain from ${initialUrl}`);
         }
       }
       
@@ -121,9 +135,8 @@ module.exports = async (req, res) => {
         baseDomain = baseDomain.slice(0, -1);
       }
       
-      
       const targetUrl = `${baseDomain}/anime-terbaru/`;
-      headers.Referer = baseDomain + '/'; // Set Referer to base domain for this request
+      headers.Referer = baseDomain + '/';
       const animeResponse = await axios.get(targetUrl, { headers, timeout: 15000 });
       $ = cheerio.load(animeResponse.data);
       
@@ -133,7 +146,8 @@ module.exports = async (req, res) => {
         const title = titleElement.attr('title') || titleElement.text();
         const link = titleElement.attr('href');
         const image = $(element).find('.thumb a img.npws').attr('src');
-        const episode = $(element).find('.dtla span:contains("Episode") author').text().trim();
+        const episodeElement = $(element).find('.dtla span:contains("Episode")');
+        const episode = episodeElement.text().replace(/Episode\s*/i, '').trim(); // More robust extraction
         const released = $(element).find('.dtla span:contains("Released on")').text().replace('Released on:', '').trim();
         
         if (title && link && image && episode && released) {
@@ -152,11 +166,27 @@ module.exports = async (req, res) => {
     
   } catch (error) {
     let errorMessage = error.message;
+    let statusCode = 500; // Default status code
+    
     if (error.response) {
       errorMessage = `Error ${error.response.status}: ${error.message}`;
+      statusCode = error.response.status;
     } else if (error.request) {
       errorMessage = `No response received: ${error.message}`;
+      statusCode = 504; // Gateway Timeout might be appropriate
+    } else if (error instanceof URIError || error.message.includes('Invalid URL')) {
+      errorMessage = `Invalid URL provided: ${error.message}`;
+      statusCode = 400; // Bad Request
+    } else if (error.message.includes('Could not determine the base domain')) {
+      errorMessage = error.message;
+      statusCode = 500;
     }
-    res.status(500).json({ success: false, error: errorMessage });
+    
+    // Ensure status code is within the valid range
+    if (statusCode < 400 || statusCode >= 600) {
+      statusCode = 500;
+    }
+    
+    res.status(statusCode).json({ success: false, error: errorMessage });
   }
 };
