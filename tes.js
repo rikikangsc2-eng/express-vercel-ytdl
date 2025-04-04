@@ -1,6 +1,6 @@
 const axios = require('axios');
-const { JSDOM } = require('jsdom');
 const cheerio = require('cheerio');
+const { URL } = require('url'); // Built-in Node.js module
 
 const fetchDownloadUrl = async (id, tS, tH, cfToken) => {
   try {
@@ -13,8 +13,10 @@ const fetchDownloadUrl = async (id, tS, tH, cfToken) => {
         t: '0'
       },
       headers: {
-        'X-CFTOKEN': cfToken,
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36'
+        'X-CFTOKEN': cfToken || '', // Pass token, even if null/placeholder
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36',
+        'Accept': '*/*',
+        'Referer': `https://mp3api.ytjar.info/iframe/?vid=${id}` // Example referer, might need adjustment
       }
     });
     
@@ -23,17 +25,22 @@ const fetchDownloadUrl = async (id, tS, tH, cfToken) => {
     if (data.status === 'ok') {
       return data.link;
     } else if (data.status === 'processing') {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      const nextCfToken = cfToken.endsWith('.PROGRESS') ? cfToken : cfToken + '.PROGRESS';
+      await new Promise(resolve => setTimeout(resolve, 2500)); // Wait slightly longer
+      const nextCfToken = cfToken && cfToken.endsWith('.PROGRESS') ? cfToken : (cfToken || '') + ".PROGRESS";
       return await fetchDownloadUrl(id, tS, tH, nextCfToken);
     } else if (data.status === "fail" && data.msg === "Invalid Token") {
-      throw new Error('Invalid Cloudflare Token, retrying might be needed or token expired.');
-    }
-    else {
-      throw new Error(data.msg || 'Failed to get download link from API');
+      throw new Error('Invalid Cloudflare Token provided to API');
+    } else {
+      throw new Error(data.msg || 'API returned status "fail" or unknown status');
     }
   } catch (error) {
-    throw new Error(`API request failed: ${error.message}`);
+    let message = `API request failed: ${error.message}`;
+    if (error.response && error.response.data && error.response.data.msg) {
+      message += ` - API Message: ${error.response.data.msg}`;
+    } else if (error.response && error.response.status) {
+      message += ` - Status: ${error.response.status}`;
+    }
+    throw new Error(message);
   }
 };
 
@@ -45,20 +52,20 @@ module.exports = async (req, res) => {
       return res.json({ success: false, error: 'Missing URL parameter' });
     }
     
-    const initialResponse = await axios.get('https://edunity.fr/', {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36',
-        'Referer': 'https://edunity.fr/'
-      }
-    });
+    const baseHeaders = {
+      'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36',
+      'Referer': 'https://edunity.fr/'
+    };
     
-    const initialDom = new JSDOM(initialResponse.data);
-    const form = initialDom.window.document.querySelector('form.search-form');
-    if (!form) {
+    const initialResponse = await axios.get('https://edunity.fr/', { headers: baseHeaders });
+    
+    const $initial = cheerio.load(initialResponse.data);
+    const form = $initial('form.search-form');
+    if (!form.length) {
       return res.json({ success: false, error: 'Search form not found on initial page' });
     }
     
-    const formAction = form.getAttribute('action');
+    const formAction = form.attr('action');
     if (!formAction) {
       return res.json({ success: false, error: 'Search form action not found' });
     }
@@ -66,70 +73,97 @@ module.exports = async (req, res) => {
     const postUrl = new URL(formAction, 'https://edunity.fr/').href;
     const postResponse = await axios.post(postUrl, `q=${encodeURIComponent(url)}`, {
       headers: {
+        ...baseHeaders,
         'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36',
-        'Referer': 'https://edunity.fr/'
+        'Referer': 'https://edunity.fr/' // Referer for the POST is the initial page
       }
     });
     
-    const postDom = new JSDOM(postResponse.data);
-    const iframe = Array.from(postDom.window.document.querySelectorAll('iframe'))
-      .find(frame => frame.src && frame.src.includes('mp3'));
+    const $post = cheerio.load(postResponse.data);
+    const iframe = $post('iframe[src*="mp3"]');
     
-    if (!iframe || !iframe.src) {
-      return res.json({ success: false, error: 'MP3 iframe not found in search results' });
+    if (!iframe.length || !iframe.attr('src')) {
+      return res.json({ success: false, error: 'MP3 iframe element or src not found in search results' });
     }
     
-    const iframeUrl = iframe.src;
+    const iframeUrl = iframe.attr('src');
+    if (!iframeUrl.startsWith('http')) {
+      // Handle relative iframe URLs if necessary, though seems unlikely here
+      return res.json({ success: false, error: `Invalid iframe src found: ${iframeUrl}` });
+    }
+    
     
     const iframeResponse = await axios.get(iframeUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36',
-        'Referer': postUrl
+        ...baseHeaders,
+        'Referer': postUrl // Referer is the page containing the iframe
       }
     });
     const iframeHtml = iframeResponse.data;
-    const $ = cheerio.load(iframeHtml);
+    const $iframe = cheerio.load(iframeHtml);
     
-    const cfTokenInput = $('input[name="cf-turnstile-response"]');
-    const cfToken = cfTokenInput.val();
-    if (!cfToken) {
-      return res.json({ success: false, error: 'Cloudflare token not found in iframe' });
+    const cfTokenInput = $iframe('input[name="cf-turnstile-response"]');
+    
+    if (!cfTokenInput.length) {
+      return res.json({ success: false, error: 'Cloudflare token input element (cf-turnstile-response) not found in iframe HTML.' });
     }
+    
+    const cfTokenStaticValue = cfTokenInput.val() || null; // Get static value, likely placeholder
     
     let videoId = null;
     let tS = null;
     let tH = null;
     
-    $('script').each((index, element) => {
-      const scriptContent = $(element).html();
+    $iframe('script').each((index, element) => {
+      const scriptContent = $iframe(element).html();
       if (scriptContent) {
-        const mp3ConversionMatch = scriptContent.match(/mp3Conversion\(['"](.*?)['"],/);
-        if (mp3ConversionMatch && mp3ConversionMatch[1]) {
-          videoId = mp3ConversionMatch[1];
+        if (!videoId) {
+          const videoIdMatch = scriptContent.match(/mp3Conversion\s*\(\s*['"]([^'"]+)['"]/);
+          if (videoIdMatch && videoIdMatch[1]) {
+            videoId = videoIdMatch[1];
+          }
         }
-        
-        const tsMatch = scriptContent.match(/var\s+tS\s*=\s*['"](.*?)['"];/);
-        if (tsMatch && tsMatch[1]) {
-          tS = tsMatch[1];
+        if (!tS) {
+          const tsMatch = scriptContent.match(/(?:window\.|var\s+)tS\s*=\s*['"]([^'"]+)['"]/);
+          if (tsMatch && tsMatch[1]) {
+            tS = tsMatch[1];
+          }
         }
-        const thMatch = scriptContent.match(/var\s+tH\s*=\s*['"](.*?)['"];/);
-        if (thMatch && thMatch[1]) {
-          tH = thMatch[1];
+        if (!tH) {
+          const thMatch = scriptContent.match(/(?:window\.|var\s+)tH\s*=\s*['"]([^'"]+)['"]/);
+          if (thMatch && thMatch[1]) {
+            tH = thMatch[1];
+          }
         }
       }
     });
     
-    
-    if (!videoId || !tS || !tH) {
-      return res.json({ success: false, error: 'Could not extract required parameters (videoId, tS, tH) from iframe script' });
+    if (!videoId || tS === null || tH === null) { // Check for null explicitly as they might be empty strings
+      const missing = [];
+      if (!videoId) missing.push('videoId');
+      if (tS === null) missing.push('tS');
+      if (tH === null) missing.push('tH');
+      return res.json({ success: false, error: `Could not extract required parameters (${missing.join(', ')}) from iframe script using static analysis.` });
     }
     
-    const downloadUrl = await fetchDownloadUrl(videoId, tS, tH, cfToken);
-    
-    res.json({ success: true, data: { downloadUrl: downloadUrl } });
+    try {
+      const downloadUrl = await fetchDownloadUrl(videoId, tS, tH, cfTokenStaticValue);
+      res.json({ success: true, data: { downloadUrl: downloadUrl } });
+    } catch (apiError) {
+      let errorMessage = `API call failed: ${apiError.message}.`;
+      if (apiError.message.includes('Invalid Token') || apiError.message.includes('Cloudflare')) {
+        errorMessage += " This usually means the Cloudflare Turnstile challenge could not be solved by static scraping.";
+      }
+      res.json({ success: false, error: errorMessage });
+    }
     
   } catch (error) {
-    res.json({ success: false, error: error.message });
+    let detailedError = `General error: ${error.message}`;
+    if (error.response) {
+      detailedError += ` (Status: ${error.response.status})`;
+    } else if (error.request) {
+      detailedError += ` (No response received)`;
+    }
+    res.json({ success: false, error: detailedError });
   }
 };
