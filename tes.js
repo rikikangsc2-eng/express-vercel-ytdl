@@ -41,8 +41,7 @@
          'Referer': initialUrl,
          'Accept-Encoding': 'gzip, deflate, br',
          'Accept': '*/*',
-         'Origin': 'https://ytmp3.ing',
-         'X-Requested-With': 'XMLHttpRequest'
+         'Origin': 'https://ytmp3.ing'
        }
      });
      
