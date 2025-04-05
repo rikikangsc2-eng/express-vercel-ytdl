@@ -2,80 +2,44 @@ const axios = require('axios');
 
 module.exports = async (req, res) => {
   try {
-    const query = req.query.q;
-    if (!query) {
-      return res.errorJson('Parameter query (q) diperlukan', 400);
-    }
-
-    const searchResponse = await axios.get('https://nirkyy.koyeb.app/api/v1/Youtube', {
-      params: { query }
-    });
-
-    if (!searchResponse.data || !searchResponse.data.success || !Array.isArray(searchResponse.data.data)) {
-      return res.errorJson('Gagal melakukan pencarian YouTube atau format respons tidak valid', 500);
-    }
-
-    const videos = searchResponse.data.data;
-
-    const filteredVideos = videos.filter(video => {
-      if (!video.duration || typeof video.duration !== 'string') return false;
-      const parts = video.duration.split(':');
-      if (parts.length < 2 || parts.length > 3) return false;
-      let durationInSeconds = 0;
-      if (parts.length === 3) {
-        durationInSeconds = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
-      } else {
-        durationInSeconds = parseInt(parts[0]) * 60 + parseInt(parts[1]);
-      }
-      return !isNaN(durationInSeconds) && durationInSeconds < 600;
-    });
-
-    if (filteredVideos.length === 0) {
-      return res.errorJson('Tidak ada video ditemukan dengan durasi di bawah 10 menit', 404);
-    }
-
-    const targetUrl = filteredVideos[0].url;
-
-    const saveTubeResponse = await axios.get('https://nirkyy.koyeb.app/api/v1/savetube', {
-      params: {
-        url: targetUrl,
-        format: 'mp3'
-      }
-    });
-
-    if (!saveTubeResponse.data || !saveTubeResponse.data.success || !saveTubeResponse.data.data || !saveTubeResponse.data.data.download) {
-      return res.errorJson('Gagal mendapatkan link download dari Savetube atau format respons tidak valid', 500);
-    }
-
-    const downloadUrl = saveTubeResponse.data.data.download;
-    const audioTitle = saveTubeResponse.data.data.title || 'audio';
-
-    const audioResponse = await axios.get(downloadUrl, {
-      responseType: 'arraybuffer',
+    const initialResponse = await axios.get('https://tempmail.so/', {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36'
-      }
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36',
+        'Referer': 'https://tempmail.so/',
+      },
+      responseType: 'text',
+      decompress: true
     });
-
-    res.setHeader('Content-Type', 'audio/mpeg');
-    res.send(audioResponse.data);
-
+    
+    const cookies = initialResponse.headers['set-cookie'];
+    const cookieString = cookies ? cookies.map(cookie => cookie.split(';')[0]).join('; ') : '';
+    
+    const requestTime = Date.now();
+    const apiUrl = `https://tempmail.so/us/api/inbox?requestTime=${requestTime}&lang=us`;
+    
+    const apiResponse = await axios.get(apiUrl, {
+      headers: {
+        'Accept': 'application/json',
+        'Content-type': 'application/json',
+        'X-Inbox-Lifespan': '600',
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36',
+        'Referer': 'https://tempmail.so/',
+        'Cookie': cookieString
+      },
+      responseType: 'json',
+      decompress: true
+    });
+    
+    res.json({ success: true, data: apiResponse.data });
+    
   } catch (error) {
-    let errorMessage = 'Terjadi kesalahan internal';
-    let statusCode = 500;
+    let errorMessage = error.message;
     if (error.response) {
-      errorMessage = `Error dari API: ${error.response.status} - ${JSON.stringify(error.response.data) || error.message}`;
-      statusCode = error.response.status;
+      errorMessage = `Status: ${error.response.status}, Data: ${JSON.stringify(error.response.data)}`;
     } else if (error.request) {
-      errorMessage = `Tidak ada respons diterima: ${error.message}`;
-      statusCode = 503; 
-    } else {
-      errorMessage = `Error konfigurasi request: ${error.message}`;
+      errorMessage = 'Tidak ada respons diterima dari server.';
     }
-    if (!res.headersSent) {
-      res.errorJson(errorMessage, statusCode);
-    } else {
-      console.error('Error after headers sent:', error);
-    }
+    res.json({ success: false, error: errorMessage });
   }
 };
