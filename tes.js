@@ -18,20 +18,16 @@ module.exports = async (req, res) => {
     const videos = searchResponse.data.data;
     
     const filteredVideos = videos.filter(video => {
-      if (!video.duration || typeof video.duration !== 'string') {
-        return false;
-      }
+      if (!video.duration || typeof video.duration !== 'string') return false;
       const parts = video.duration.split(':');
-      if (parts.length < 2 || parts.length > 3) {
-        return false;
-      }
+      if (parts.length < 2 || parts.length > 3) return false;
       let durationInSeconds = 0;
-      if (parts.length === 3) { // HH:MM:SS
+      if (parts.length === 3) {
         durationInSeconds = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
-      } else { // MM:SS
+      } else {
         durationInSeconds = parseInt(parts[0]) * 60 + parseInt(parts[1]);
       }
-      return !isNaN(durationInSeconds) && durationInSeconds < 600; // Kurang dari 10 menit (600 detik)
+      return !isNaN(durationInSeconds) && durationInSeconds < 600;
     });
     
     if (filteredVideos.length === 0) {
@@ -54,31 +50,16 @@ module.exports = async (req, res) => {
     const downloadUrl = saveTubeResponse.data.data.download;
     const audioTitle = saveTubeResponse.data.data.title || 'audio';
     
-    const audioStreamResponse = await axios.get(downloadUrl, {
-      responseType: 'stream'
+    const audioResponse = await axios.get(downloadUrl, {
+      responseType: 'arraybuffer',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36'
+      }
     });
     
     res.setHeader('Content-Type', 'audio/mpeg');
-    audioStreamResponse.data.pipe(res);
-    
-    audioStreamResponse.data.on('error', (streamError) => {
-      if (!res.headersSent) {
-        res.json({ success: false, error: `Error saat streaming audio: ${streamError.message}` });
-      } else {
-        // Jika header sudah terkirim, kita tidak bisa mengirim JSON lagi
-        // Cukup log error di server jika perlu, atau coba akhiri response
-        console.error('Stream error after headers sent:', streamError);
-        res.end();
-      }
-    });
-    
-    res.on('close', () => {
-      // Hentikan stream jika koneksi client ditutup
-      if (audioStreamResponse.data && typeof audioStreamResponse.data.destroy === 'function') {
-        audioStreamResponse.data.destroy();
-      }
-    });
-    
+    res.setHeader('Content-Disposition', `attachment; filename="${audioTitle}.mp3"`);
+    res.send(audioResponse.data);
     
   } catch (error) {
     let errorMessage = 'Terjadi kesalahan internal';
