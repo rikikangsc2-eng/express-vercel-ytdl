@@ -18,6 +18,16 @@ const voice = new ElevenLabs({
 app.get('/otakudesu',require('./otakkudesu/homepage.js'))
 app.get('/tes',test)
 
+app.get('/server-url', (req, res) => {
+  const serverId = req.query.serverId;
+
+  if (!serverId) {
+    return res.status(400).json({ error: 'Parameter serverId diperlukan' });
+  }
+
+  res.json({ message: `Server ID yang diterima: ${serverId}` });
+});
+
 app.get('/brats', async (req, res) => {
   const {
     text,
