@@ -18,11 +18,7 @@ const voice = new ElevenLabs({
 app.get('/otakudesu',require('./otakkudesu/homepage.js'))
 app.get('/tes',test)
 
-const express = require('express');
-const axios = require('axios');
-const app = express();
-
-app.get('/', async (req, res) => {
+app.get('/stream', async (req, res) => {
   try {
     const query = req.query.q;
     if (!query) {
@@ -48,12 +44,6 @@ app.get('/', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
-const port = 3000;
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-});
-
 
 
 app.get('/brats', async (req, res) => {
