@@ -18,15 +18,43 @@ const voice = new ElevenLabs({
 app.get('/otakudesu',require('./otakkudesu/homepage.js'))
 app.get('/tes',test)
 
-app.get('/server-url', (req, res) => {
-  const serverId = req.query.serverId;
+const express = require('express');
+const axios = require('axios');
+const app = express();
 
-  if (!serverId) {
-    return res.status(400).json({ error: 'Parameter serverId diperlukan' });
+app.get('/', async (req, res) => {
+  try {
+    const query = req.query.q;
+    if (!query) {
+      return res.status(400).json({ error: 'Missing query parameter: q' });
+    }
+
+    const response = await axios.get(
+      `https://layarwibu.com/server-url?serverId=${encodeURIComponent(query)}`,
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent':
+            'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36',
+          'Referer': `https://layarwibu.com/server-url?serverId=${encodeURIComponent(
+              query
+          )}`,
+        },
+      }
+    );
+
+    res.json(response.data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
-
-  res.json({ message: `Server ID yang diterima: ${serverId}` });
 });
+
+const port = 3000;
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+});
+
+
 
 app.get('/brats', async (req, res) => {
   const {
