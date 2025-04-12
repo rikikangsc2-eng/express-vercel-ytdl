@@ -29,35 +29,70 @@ function getRandomUserAgent() {
   return userAgents[Math.floor(Math.random() * userAgents.length)];
 }
 
+async function fetchAudio(model_id, text, retries = 3) {
+  const url = `https://api.elevenlabs.io/v1/text-to-speech/${model_id}?allow_unauthenticated=1`;
+  const headers = {
+    'Content-Type': 'application/json',
+    'User-Agent': getRandomUserAgent(),
+    'Referer': 'https://elevenlabs.io/'
+  };
+  const data = {
+    text,
+    model_id: 'eleven_multilingual_v2',
+    voice_settings: { speed: 1 }
+  };
+  
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const response = await axios.post(url, data, {
+        headers,
+        responseType: 'arraybuffer'
+      });
+      return response.data;
+    } catch (error) {
+      const isQuotaError = error?.response?.data?.toString()?.includes('quota_exceeded');
+      if (attempt < retries && isQuotaError) continue;
+      throw error;
+    }
+  }
+}
+
 module.exports = async (req, res) => {
-  const { model = 'brian', text = 'Apa kabar sayang' } = req.query;
-  const model_id = modelList[model.toLowerCase()] || modelList['brian'];
-  const userAgent = getRandomUserAgent();
+  const { model, text } = req.query;
+  
+  if (!model || !modelList[model.toLowerCase()]) {
+    const models = Object.entries(modelList).map(([key, val]) => ({ name: key, id: val }));
+    return res.json({ available_models: models });
+  }
   
   try {
-    const response = await axios.post(
-      `https://api.elevenlabs.io/v1/text-to-speech/${model_id}?allow_unauthenticated=1`,
-      {
-        text: text,
-        model_id: 'eleven_multilingual_v2',
-        voice_settings: { speed: 1 }
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': userAgent,
-          'Referer': 'https://elevenlabs.io/'
-        },
-        responseType: 'arraybuffer'
-      }
-    );
-    
+    const model_id = modelList[model.toLowerCase()];
+    const audio = await fetchAudio(model_id, text || 'Apa kabar sayang');
     res.setHeader('Content-Type', 'audio/mpeg');
-    res.send(response.data);
+    res.send(audio);
   } catch (error) {
+    let errorDetails = 'Unknown error occurred';
+    
+    if (error.response) {
+      const errorData = error.response.data;
+      
+      if (typeof errorData === 'string') {
+        try {
+          const parsedError = JSON.parse(errorData);
+          errorDetails = parsedError?.message || parsedError?.detail || 'Error from ElevenLabs API';
+        } catch (e) {
+          errorDetails = 'Failed to parse error response from ElevenLabs';
+        }
+      } else {
+        errorDetails = errorData?.message || errorData?.detail || 'Error from ElevenLabs API';
+      }
+    } else {
+      errorDetails = error.message || 'Network error or no response from ElevenLabs';
+    }
+    
     res.status(500).json({
       error: 'Failed to fetch from ElevenLabs API',
-      details: error?.response?.data || error.message
+      details: errorDetails
     });
   }
 };
