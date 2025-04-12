@@ -1,58 +1,63 @@
 const axios = require('axios');
-const { Readable } = require('stream');
 
-const voices = {
-  Anisa: { service: 'StreamElements', voice: 'id-ID-Wavenet-A' },
-  Budi: { service: 'StreamElements', voice: 'id-ID-Wavenet-B' },
-  Bayu: { service: 'StreamElements', voice: 'id-ID-Wavenet-C' },
-  Andika: { service: 'StreamElements', voice: 'Andika' },
-  Darma: { service: 'TikTok', voice: 'id_male_darma' },
-  Icha: { service: 'TikTok', voice: 'id_female_icha' },
-  Noor: { service: 'TikTok', voice: 'id_female_noor' },
-  Putra: { service: 'TikTok', voice: 'id_male_putra' },
-  Damayanti: { service: 'Cerence', voice: 'Damayanti' },
-  Bintang: { service: 'Oddcast', voice: '2-7-28' },
-  Putri: { service: 'Oddcast', voice: '1-7-28' },
-  Gadis: { service: 'Bing Translator', voice: 'id-ID-GadisNeural' },
-  Ardi: { service: 'Bing Translator', voice: 'id-ID-ArdiNeural' }
+const modelList = {
+  brian: 'nPczCjzI2devNBz1zQrb',
+  alice: 'Xb7hH8MSUJpSbSDYk0k2',
+  bill: 'pqHfZKP75CvOlQylNhV4'
 };
 
+function getRandomUserAgent() {
+  const locales = ['en-US', 'id-ID', 'en-GB', 'en', 'id'];
+  const locale = locales[Math.floor(Math.random() * locales.length)];
+  
+  const androidDevices = ['SM-G991B', 'Pixel 6', 'RMX2185', 'Redmi Note 10', 'CPH1909'];
+  const androidVersion = ['10', '11', '12', '13'];
+  const androidDevice = androidDevices[Math.floor(Math.random() * androidDevices.length)];
+  const androidVer = androidVersion[Math.floor(Math.random() * androidVersion.length)];
+  
+  const chromeVersion = `${Math.floor(100 + Math.random() * 40)}.0.${Math.floor(4000 + Math.random() * 2000)}.${Math.floor(100 + Math.random() * 300)}`;
+  const safariVersion = `${Math.floor(14 + Math.random() * 3)}.0`;
+  
+  const userAgents = [
+    `Mozilla/5.0 (Linux; Android ${androidVer}; ${androidDevice}; ${locale}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVersion} Mobile Safari/537.36`,
+    `Mozilla/5.0 (Windows NT 10.0; Win64; x64; ${locale}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVersion} Safari/537.36`,
+    `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7; ${locale}) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/${safariVersion} Safari/605.1.15`,
+    `Mozilla/5.0 (iPhone; CPU iPhone OS 15_2 like Mac OS X; ${locale}) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/${safariVersion} Mobile/15E148 Safari/604.1`,
+    `Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:${Math.floor(90 + Math.random() * 20)}.0) Gecko/20100101 Firefox/${Math.floor(90 + Math.random() * 20)}.0`
+  ];
+  
+  return userAgents[Math.floor(Math.random() * userAgents.length)];
+}
+
 module.exports = async (req, res) => {
+  const { model = 'brian', text = 'Apa kabar sayang' } = req.query;
+  const model_id = modelList[model.toLowerCase()] || modelList['brian'];
+  const userAgent = getRandomUserAgent();
+  
   try {
-    const { voice, text } = req.query;
-    const voiceData = voices[voice];
-    
-    if (!voiceData) {
-      return res.json({
-        success: false,
-        error: 'Voice tidak valid',
-        available_voices: Object.keys(voices)
-      });
-    }
-    
-    const payload = new URLSearchParams({
-      service: voiceData.service,
-      voice: voiceData.voice,
-      text
-    });
-    
-    const response = await axios.post('https://lazypy.ro/tts/request_tts.php', payload.toString(), {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36',
-        'Referer': `https://lazypy.ro/tts/?voice=${voiceData.voice}&service=${voiceData.service}&text=${text}&lang=Indonesian&g=A`
+    const response = await axios.post(
+      `https://api.elevenlabs.io/v1/text-to-speech/${model_id}?allow_unauthenticated=1`,
+      {
+        text: text,
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: { speed: 1 }
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': userAgent,
+          'Referer': 'https://elevenlabs.io/'
+        },
+        responseType: 'arraybuffer'
       }
-    });
+    );
     
-    const audioUrl = response.data.audio_url;
-    if (!audioUrl) {
-      return res.json({ success: false, error: 'Audio URL tidak ditemukan' });
-    }
-    
-    const audioStream = await axios.get(audioUrl, { responseType: 'stream' });
     res.setHeader('Content-Type', 'audio/mpeg');
-    audioStream.data.pipe(res);
+    res.send(response.data);
   } catch (error) {
-    res.json({ success: false, error: error.message });
+    res.status(500).json({
+      error: 'Failed to fetch from ElevenLabs API',
+      details: error?.response?.data || error.message
+    });
   }
 };
