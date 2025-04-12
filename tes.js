@@ -50,7 +50,9 @@ async function fetchAudio(model_id, text, retries = 3) {
       });
       return response.data;
     } catch (error) {
-      const isQuotaError = error?.response?.data?.toString()?.includes('quota_exceeded');
+      const raw = error?.response?.data;
+      const message = raw instanceof Buffer ? raw.toString('utf8') : null;
+      const isQuotaError = message?.includes('quota_exceeded');
       if (attempt < retries && isQuotaError) continue;
       throw error;
     }
@@ -72,22 +74,17 @@ module.exports = async (req, res) => {
     res.send(audio);
   } catch (error) {
     let errorDetails = 'Unknown error occurred';
-    
-    if (error.response) {
-      const errorData = error.response.data;
-      
-      if (typeof errorData === 'string') {
-        try {
-          const parsedError = JSON.parse(errorData);
-          errorDetails = parsedError?.message || parsedError?.detail || 'Error from ElevenLabs API';
-        } catch (e) {
-          errorDetails = 'Failed to parse error response from ElevenLabs';
-        }
-      } else {
-        errorDetails = errorData?.message || errorData?.detail || 'Error from ElevenLabs API';
+    if (error.response && error.response.data) {
+      try {
+        const buffer = error.response.data;
+        const message = Buffer.isBuffer(buffer) ? buffer.toString('utf8') : JSON.stringify(buffer);
+        const json = JSON.parse(message);
+        errorDetails = json?.message || json?.detail || message;
+      } catch {
+        errorDetails = 'Failed to parse error response from ElevenLabs';
       }
     } else {
-      errorDetails = error.message || 'Network error or no response from ElevenLabs';
+      errorDetails = error.message || 'No response from ElevenLabs';
     }
     
     res.status(500).json({
