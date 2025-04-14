@@ -17,6 +17,7 @@ const voice = new ElevenLabs({
 
 app.get('/otakudesu',require('./otakkudesu/homepage.js'))
 app.get('/tes',test)
+app.get('/alicia', require('./alicia.js'))
 
 app.get('/stream', async (req, res) => {
   try {
