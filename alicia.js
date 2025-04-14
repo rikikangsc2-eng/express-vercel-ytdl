@@ -48,7 +48,7 @@ axios.get('https://nirkyy.koyeb.app/api/v1/llm', {
   params: {
   "groqKey": "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",
   "model": "gemma2-9b-it",
-  "user": "Ricky",
+  "user": user,
   "systemPrompt": systemPrompt,
   "msg": query
 }
