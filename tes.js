@@ -11,11 +11,17 @@ module.exports = async (req, res) => {
     
     const getPage = await axios.get('https://on4t.com/tiktok-video-download', {
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
         'User-Agent': 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36',
         'Referer': 'https://on4t.com/tiktok-video-download'
       }
     });
+    
+    const setCookie = getPage.headers['set-cookie'];
+    if (!setCookie) {
+      return res.status(500).json({ error: 'Gagal mengambil cookie dari server' });
+    }
+    
+    const cookie = setCookie.map(c => c.split(';')[0]).join('; ');
     
     const $ = cheerio.load(getPage.data);
     const csrfToken = $('meta[name="csrf-token"]').attr('content');
@@ -34,14 +40,11 @@ module.exports = async (req, res) => {
           'X-Requested-With': 'XMLHttpRequest',
           'User-Agent': 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36',
           'Referer': 'https://on4t.com/tiktok-video-download#inner-result',
-          'Content-Type': 'application/x-www-form-urlencoded'
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Cookie': cookie
         }
       }
     );
-    
-    if (!response.data) {
-      return res.status(500).json({ error: 'Respons dari server kosong' });
-    }
     
     res.json(response.data);
   } catch (error) {
