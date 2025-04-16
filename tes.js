@@ -2,50 +2,50 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 
 module.exports = async (req, res) => {
+  const url = req.query.url;
+  if (!url) {
+    return res.status(400).json({ status: 'error', message: 'URL-nya mana bre? Kirim dulu dong!' });
+  }
+  
   try {
-    const inputUrl = req.query.url;
-    if (!inputUrl) return res.status(400).json({ error: 'Link-nya mana cuy? Kasih dulu di ?url=' });
-    
-    const headers = {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36',
-      'Referer': 'https://indown.io/tiktok-downloader/id'
-    };
-    
-    const session = await axios.get('https://indown.io/tiktok-downloader/id', { headers });
-    const cookies = session.headers['set-cookie']?.map(cookie => cookie.split(';')[0]).join('; ');
-    const $ = cheerio.load(session.data);
-    const token = $('input[name="_token"]').val();
-    const referer = $('input[name="referer"]').val() || 'https://indown.io/tiktok-downloader/id';
-    const locale = $('input[name="locale"]').val() || 'id';
-    const ip = $('input[name="i"]').val() || '103.3.221.255';
-    
-    if (!token) {
-      return res.status(500).json({ error: 'Gagal ambil CSRF token cuy, elemennya ga ketemu' });
-    }
-    
-    const formData = new URLSearchParams();
-    formData.append('_token', token);
-    formData.append('referer', referer);
-    formData.append('locale', locale);
-    formData.append('i', ip);
-    formData.append('link', inputUrl);
-    
-    const postHeaders = {
-      ...headers,
-      'Cookie': cookies
-    };
-    
-    const postResponse = await axios.post('https://indown.io/download', formData, {
-      headers: postHeaders
+    const response = await axios.post('https://tiksave.io/api/ajaxSearch', new URLSearchParams({
+      q: url,
+      lang: 'id'
+    }).toString(), {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'Accept': '*/*',
+        'X-Requested-With': 'XMLHttpRequest',
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36',
+        'Referer': 'https://tiksave.io/id'
+      }
     });
     
-    res.setHeader('Content-Type', 'text/html');
-    res.send(postResponse.data);
-  } catch (err) {
-    if (err.response && err.response.status === 403) {
-      return res.status(403).json({ error: 'Diblok bre, kemungkinan butuh cookie/session valid' });
+    const json = response.data;
+    if (!json || json.status !== 'ok' || !json.data) {
+      return res.status(500).json({ status: 'error', message: 'Gagal dapetin data bre, format response-nya aneh cuy!' });
     }
-    res.status(500).json({ error: `Waduh bre, error: ${err.message}` });
+    
+    const $ = cheerio.load(json.data);
+    
+    const thumbnail = $('.image-tik img').attr('src') || null;
+    const title = $('.content h3').text() || null;
+    
+    const links = [];
+    $('.dl-action a').each((i, el) => {
+      const text = $(el).text().trim();
+      const href = $(el).attr('href');
+      if (href) links.push({ label: text, url: href });
+    });
+    
+    return res.json({
+      status: 'ok',
+      title,
+      thumbnail,
+      downloads: links
+    });
+    
+  } catch (err) {
+    return res.status(500).json({ status: 'error', message: `Waduh bre, error pas scraping: ${err.message}` });
   }
 };
