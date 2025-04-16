@@ -3,51 +3,38 @@ const cheerio = require('cheerio');
 
 module.exports = async (req, res) => {
   try {
-    const { url } = req.query;
+    const inputUrl = req.query.url;
+    if (!inputUrl) return res.status(400).json({ error: 'Link-nya mana cuy? Kasih dulu di ?url=' });
     
-    if (!url) {
-      return res.status(400).json({ error: 'Parameter "url" tidak ditemukan' });
-    }
+    const headers = {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36',
+      'Referer': 'https://indown.io/tiktok-downloader/id'
+    };
     
-    const getPage = await axios.get('https://on4t.com/tiktok-video-download', {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36',
-        'Referer': 'https://on4t.com/tiktok-video-download'
-      }
-    });
-    
-    const setCookie = getPage.headers['set-cookie'];
-    if (!setCookie) {
-      return res.status(500).json({ error: 'Gagal mengambil cookie dari server' });
-    }
-    
-    const cookie = setCookie.map(c => c.split(';')[0]).join('; ');
-    
+    const getPage = await axios.get('https://indown.io/tiktok-downloader/id', { headers });
     const $ = cheerio.load(getPage.data);
-    const csrfToken = $('meta[name="csrf-token"]').attr('content');
+    const token = $('input[name="_token"]').val();
+    const referer = $('input[name="referer"]').val();
+    const locale = $('input[name="locale"]').val();
+    const ip = $('input[name="i"]').val();
     
-    if (!csrfToken) {
-      return res.status(500).json({ error: 'Gagal mengambil CSRF token dari halaman' });
+    if (!token || !referer || !locale || !ip) {
+      return res.status(500).json({ error: 'Gagal ambil data form cuy, mungkin elemennya berubah' });
     }
     
-    const response = await axios.post(
-      'https://on4t.com/tiktok-video-download',
-      new URLSearchParams({ link: url }).toString(),
-      {
-        headers: {
-          'Accept': 'application/json, text/javascript, */*; q=0.01',
-          'X-CSRF-TOKEN': csrfToken,
-          'X-Requested-With': 'XMLHttpRequest',
-          'User-Agent': 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36',
-          'Referer': 'https://on4t.com/tiktok-video-download#inner-result',
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Cookie': cookie
-        }
-      }
-    );
+    const formData = new URLSearchParams();
+    formData.append('_token', token);
+    formData.append('referer', referer);
+    formData.append('locale', locale);
+    formData.append('i', ip);
+    formData.append('link', inputUrl);
     
-    res.json(response.data);
-  } catch (error) {
-    res.status(500).json({ error: 'Terjadi kesalahan: ' + error.message });
+    const postResponse = await axios.post('https://indown.io/download', formData, { headers });
+    
+    res.setHeader('Content-Type', 'text/html');
+    res.send(postResponse.data);
+  } catch (err) {
+    res.status(500).json({ error: `Waduh bre, error: ${err.message}` });
   }
 };
