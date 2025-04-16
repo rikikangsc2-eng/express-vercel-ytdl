@@ -16,12 +16,12 @@ module.exports = async (req, res) => {
     const cookies = session.headers['set-cookie']?.map(cookie => cookie.split(';')[0]).join('; ');
     const $ = cheerio.load(session.data);
     const token = $('input[name="_token"]').val();
-    const referer = $('input[name="referer"]').val();
-    const locale = $('input[name="locale"]').val();
-    const ip = $('input[name="i"]').val();
+    const referer = $('input[name="referer"]').val() || 'https://indown.io/tiktok-downloader/id';
+    const locale = $('input[name="locale"]').val() || 'id';
+    const ip = $('input[name="i"]').val() || '103.3.221.255';
     
-    if (!token || !referer || !locale || !ip) {
-      return res.status(500).json({ error: 'Gagal ambil data form cuy, mungkin elemennya berubah' });
+    if (!token) {
+      return res.status(500).json({ error: 'Gagal ambil CSRF token cuy, elemennya ga ketemu' });
     }
     
     const formData = new URLSearchParams();
