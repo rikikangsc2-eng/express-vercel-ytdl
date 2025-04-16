@@ -12,8 +12,9 @@ module.exports = async (req, res) => {
       'Referer': 'https://indown.io/tiktok-downloader/id'
     };
     
-    const getPage = await axios.get('https://indown.io/tiktok-downloader/id', { headers });
-    const $ = cheerio.load(getPage.data);
+    const session = await axios.get('https://indown.io/tiktok-downloader/id', { headers });
+    const cookies = session.headers['set-cookie']?.map(cookie => cookie.split(';')[0]).join('; ');
+    const $ = cheerio.load(session.data);
     const token = $('input[name="_token"]').val();
     const referer = $('input[name="referer"]').val();
     const locale = $('input[name="locale"]').val();
@@ -30,11 +31,21 @@ module.exports = async (req, res) => {
     formData.append('i', ip);
     formData.append('link', inputUrl);
     
-    const postResponse = await axios.post('https://indown.io/download', formData, { headers });
+    const postHeaders = {
+      ...headers,
+      'Cookie': cookies
+    };
+    
+    const postResponse = await axios.post('https://indown.io/download', formData, {
+      headers: postHeaders
+    });
     
     res.setHeader('Content-Type', 'text/html');
     res.send(postResponse.data);
   } catch (err) {
+    if (err.response && err.response.status === 403) {
+      return res.status(403).json({ error: 'Diblok bre, kemungkinan butuh cookie/session valid' });
+    }
     res.status(500).json({ error: `Waduh bre, error: ${err.message}` });
   }
 };
