@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const apiKey = 'AIzaSyCgSVg82k5iKvNx6';
+const apiKey = 'AIzaSyBPgX5x1Xl3tfT1uxn_r4Q_7JN2NXMhWYs';
 
 module.exports = async (req, res) => {
   try {
