@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const apiKey = 'AIzaSyBPgX5x1Xl3tfT1uxn_r4Q_7JN2NXMhWYs';
+const apiKey = 'AIzaSyBPgX5x1Xl3tfT1uxn_r4Q_7JN2NXMhWYs'; // Pertimbangkan pakai env var
 
 module.exports = async (req, res) => {
   try {
@@ -14,8 +14,8 @@ module.exports = async (req, res) => {
     const generationConfig = {
       temperature: 1,
       topP: 0.95,
-      topK: 64,
-      maxOutputTokens: 65536,
+      topK: 40,
+      maxOutputTokens: 8192,
       responseMimeType: 'text/plain',
     };
 
@@ -23,18 +23,18 @@ module.exports = async (req, res) => {
       generationConfig,
       contents: [
         {
-          role: 'system',
-          parts: [
-            { text: systemInput }
-          ]
-        },
-        {
           role: 'user',
           parts: [
             { text: userInput }
           ]
         }
-      ]
+      ],
+      systemInstruction: systemInput
+        ? {
+            role: 'system',
+            parts: [{ text: systemInput }]
+          }
+        : undefined
     };
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
