@@ -1,5 +1,4 @@
 const axios = require('axios');
-const { parse } = require('node-html-parser');
 
 module.exports = async (req, res) => {
   try {
