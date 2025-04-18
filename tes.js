@@ -1,60 +1,51 @@
 const axios = require('axios');
-const cheerio = require('cheerio');
+const { parse } = require('node-html-parser');
 
 module.exports = async (req, res) => {
-  const prompt = req.query.prompt;
-  if (!prompt) {
-    return res.status(400).json({ error: 'Prompt-nya mana bre?' });
-  }
-  
   try {
+    const userPrompt = req.query.prompt;
+    if (!userPrompt) {
+      return res.status(400).json({ error: 'Parameter prompt-nya mana cuy?' });
+    }
+    
     const headers = {
       'Content-Type': 'application/x-www-form-urlencoded',
       'User-Agent': 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.135 Mobile Safari/537.36',
-      'Referer': 'https://on4t.com/free-chatgpt'
+      'Referer': 'https://imageprompt.org/image-prompt-generator',
     };
     
-    const response = await axios.get('https://on4t.com/free-chatgpt', {
-      headers,
-      decompress: true
+    const oldCookie = '_ga=GA1.1.1215784472.1744943796; google_oauth_state=%7B%22state%22%3A%22UyYMuyB2YsnqpvqMOGN_PIVscREoTzUx1SPH8fFvLD4%22%2C%22redirectUri%22%3A%22%2Fimage-prompt-generator%22%2C%22initial_referer%22%3A%22https%3A%2F%2Fwww.google.com%2F%22%7D; code_verifier=Ndn0fIfjupYSFBxQ-d-LNREWaIFd5D8qsFiYBT37gAw; auth_session=0cpj931cz1ul42j8wc7psurq6g5qcdit3a4m9zin; _ga_5BZKBZ4NTB=GS1.1.1744943795.1.1.1744944446.0.0.0';
+    
+    const cookieResp = await axios.get('https://imageprompt.org/image-prompt-generator', {
+      headers: {
+        ...headers,
+        Cookie: oldCookie,
+      }
     });
     
-    const setCookie = response.headers['set-cookie'];
+    const setCookie = cookieResp.headers['set-cookie'];
     if (!setCookie || setCookie.length === 0) {
-      return res.status(500).json({ error: 'Gagal dapetin cookie cuy' });
+      return res.status(500).json({ error: 'Gagal dapetin cookie baru cuy' });
     }
     
-    const cookie = setCookie.map(c => c.split(';')[0]).join('; ');
+    const newCookies = setCookie.map(c => c.split(';')[0]).join('; ');
     
-    const $ = cheerio.load(response.data);
-    const csrfToken = $('meta[name="csrf-token"]').attr('content');
-    
-    if (!csrfToken) {
-      return res.status(500).json({ error: 'CSRF token-nya ngilang bre' });
-    }
-    
-    const payload = {
-      input_text: prompt,
-      toolname: 'helpful-assistant.'
-    };
-    
-    const postHeaders = {
-      'Accept': '*/*',
-      'X-CSRF-TOKEN': csrfToken,
-      'X-Requested-With': 'XMLHttpRequest',
-      'User-Agent': headers['User-Agent'],
-      'Referer': headers['Referer'],
-      'Content-Type': 'application/json',
-      'Cookie': cookie
-    };
-    
-    const chatRes = await axios.post('https://on4t.com/chatgpt-process', payload, {
-      headers: postHeaders,
-      decompress: true
+    const apiResp = await axios.post('https://imageprompt.org/api/ai/prompts/magic-enhance', {
+      userPrompt: userPrompt,
+      page: 'image-prompt-generator'
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': headers['User-Agent'],
+        'Referer': headers['Referer'],
+        'Cookie': newCookies
+      }
     });
     
-    res.status(200).json(chatRes.data);
+    res.json(apiResp.data);
+    
   } catch (err) {
-    res.status(500).json({ error: `Waduh ada error bre: ${err.message}` });
+    console.error('Error cuy:', err.message);
+    res.status(500).json({ error: 'Ada error cuy, cek lagi prompt atau koneksi lo' });
   }
 };
