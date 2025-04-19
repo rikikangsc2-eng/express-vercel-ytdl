@@ -1,24 +1,24 @@
-const https = require('https');
+const axios = require('axios');
 
-module.exports = (req, res) => {
-    const options = {
-        hostname: 'api.deepinfra.com',
-        path: '/v1/openai/chat/completions',
-        method: 'POST',
-        headers: {
-            ...req.headers,
-        }
-    };
-    
-    const proxyReq = https.request(options, proxyRes => {
-        res.writeHead(proxyRes.statusCode, proxyRes.headers);
-        proxyRes.pipe(res);
-    });
-    
-    proxyReq.on('error', err => {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: `Ada error cuy: ${err.message}` }));
-    });
-    
-    req.pipe(proxyReq);
+module.exports = async (req, res) => {
+    try {
+        const axiosRes = await axios.post(
+            'https://api.deepinfra.com/v1/openai/chat/completions',
+            req.body,
+            {
+                headers: {
+                    ...req.headers,
+                },
+                responseType: 'stream'
+            }
+        );
+        
+        res.writeHead(axiosRes.status, axiosRes.headers);
+        axiosRes.data.pipe(res);
+    } catch (err) {
+        res.writeHead(err.response?.status || 500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+            error: `Gagal cuy: ${err.message}`
+        }));
+    }
 };
