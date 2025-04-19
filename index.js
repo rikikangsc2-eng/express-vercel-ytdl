@@ -9,6 +9,7 @@ const listKey = ['5130b8', 'c87ac1'];
 const randomKey = () => listKey[Math.floor(Math.random() * listKey.length)];
 const sskey = randomKey();
 
+app.use('/api',require('./deepinfra.js'));
 app.use(rpg);
 const voice = new ElevenLabs({
   apiKey: "sk_2496699c1ca47e57043385c08716c39700150d2a2bbc4938",
